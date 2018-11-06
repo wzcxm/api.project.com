@@ -126,6 +126,9 @@ class UserController extends Controller
                 $ret_data->message = "用户名或密码错误";
                 return $ret_data->toJson();
             }
+            //每次登录更新一次文件上传key
+            $user->file_key = str_random(65);
+            $user->save();
             $token = auth()->tokenById($user->uid);
             //返回用户信息
             $ret_data->data['UserInfo'] = $user;
