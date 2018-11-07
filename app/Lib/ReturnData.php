@@ -18,11 +18,6 @@ class ReturnData
     public $code = 0;
     public $message='success';
     public $data=[];
-
-    public static function createReturn(){
-        return new ReturnData();
-    }
-
     public  function toJson(){
         $ret_data = [
             'code' => $this->code,

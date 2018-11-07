@@ -27,15 +27,15 @@ class CommentController extends Controller
      * @return string
      */
     public function  Like(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();
             $release_type = $request->input('pro_type','');
             $release_id = $request->input('pro_id','');
             $source = $request->input('source',0);
             if(empty($release_type) || empty($release_id)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'pro_type或pro_id或source为空';
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'pro_type或pro_id或source为空';
             }else{
                 DB::transaction(function () use ($release_type,$release_id,$uid,$source){
                     //保存点赞记录
@@ -45,10 +45,10 @@ class CommentController extends Controller
                 });
             }
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
         }
-        return $ret_data->toJson();
+        return $retJson->toJson();
     }
 
     /**
@@ -57,7 +57,7 @@ class CommentController extends Controller
      * @return string
      */
     public function Comment(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();
             $release_type = $request->input('pro_type','');
@@ -67,8 +67,8 @@ class CommentController extends Controller
             $source = $request->input('source',0);
             $files = $request->input('files','');
             if(empty($release_type) ||  empty($comment) || empty($release_id)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'pro_type或pro_id或comment为空';
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'pro_type或pro_id或comment为空';
             }else{
                 //生成评论记录
                 $comment =  new Comment();
@@ -95,10 +95,10 @@ class CommentController extends Controller
                 });
             }
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
         }
-        return $ret_data->toJson();
+        return $retJson->toJson();
     }
 
 }

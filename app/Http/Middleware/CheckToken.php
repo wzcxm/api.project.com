@@ -21,14 +21,14 @@ class CheckToken extends BaseMiddleware
 
     public function handle($request, Closure $next)
     {
-        $ret_data =  ReturnData::createReturn();
+        $retJson =  new ReturnData();
         try{
             if(auth()->check()) {
                 $user = auth()->user();
                 if($user->islogin == 1){
-                    $ret_data->code = ErrorCode::NO_LOGIN;
-                    $ret_data->message = '禁止登录';
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::NO_LOGIN;
+                    $retJson->message = '禁止登录';
+                    return $retJson->toJson();
                 }
                 return $next($request);
             }else{
@@ -41,15 +41,15 @@ class CheckToken extends BaseMiddleware
                     // 在响应头中返回新的 token
                     return $this->setAuthenticationHeader($next($request), $token);
                 } catch (JWTException $e) {
-                    $ret_data->code = ErrorCode::TOKEN_ERROR;
-                    $ret_data->message = 'token已失效,请重新登录';
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::TOKEN_ERROR;
+                    $retJson->message = 'token已失效,请重新登录';
+                    return $retJson->toJson();
                 }
             }
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 

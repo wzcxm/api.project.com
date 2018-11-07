@@ -29,7 +29,7 @@ class UserController extends Controller
      * @return string
      */
     public function Register(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $type = $request->input('type','');
             $username = $request->input('username','');
@@ -37,34 +37,34 @@ class UserController extends Controller
             $pwd = $request->input('pwd','');
 
             if($type !='telephone' && $type != 'email'){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = "参数type错误，必须是telephone或email";
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = "参数type错误，必须是telephone或email";
+                return $retJson->toJson();
             }
             if(empty($username) || empty($code) || empty($pwd)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = "用户名、密码或验证码为空";
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = "用户名、密码或验证码为空";
+                return $retJson->toJson();
             }
             //校验是否是正确的手机/Email格式
             if($type =='telephone'){
                 if(!Common::IsTelephone($username)){
-                    $ret_data->code = ErrorCode::PARAM_ERROR;;
-                    $ret_data->message = "手机号格式错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;;
+                    $retJson->message = "手机号格式错误";
+                    return $retJson->toJson();
                 }
             }else{
                 if(!Common::IsEmail($username)){
-                    $ret_data->code = ErrorCode::PARAM_ERROR;;
-                    $ret_data->message = "Email格式错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;;
+                    $retJson->message = "Email格式错误";
+                    return $retJson->toJson();
                 }
             }
             //校验是否被注册
             if(Common::CheckPhoneOrEmail($type,$username)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;;
-                $ret_data->message = $type=='telephone'?"手机号":"邮箱"."已经被注册";
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;;
+                $retJson->message = $type=='telephone'?"手机号":"邮箱"."已经被注册";
+                return $retJson->toJson();
             }
             //校验验证码是否合法或过期
 //            if(!Common::CheckCode($username,$code)){
@@ -91,14 +91,14 @@ class UserController extends Controller
             //生成token
             $token = auth()->tokenById($user->uid);
             //返回客户端，用户信息
-            $ret_data->data['UserInfo'] = $user;
-            $ret_data->data['key'] = $user->file_key;
-            $ret_data->data['token'] = $token;
-            return $ret_data->toJson();
+            $retJson->data['UserInfo'] = $user;
+            $retJson->data['key'] = $user->file_key;
+            $retJson->data['token'] = $token;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
 
     }
@@ -109,37 +109,37 @@ class UserController extends Controller
      * @return string
      */
     public function Login(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $username = $request->input('username','');
             $pwd = $request->input('pwd','');
             if(empty($username)  || empty($pwd)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = "用户名或密码不能为空";
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = "用户名或密码不能为空";
+                return $retJson->toJson();
             }
             $user = Users::where(function ($query)use($username){
                         $query->where('telephone',$username)
                               ->orWhere('email',$username);
                     })->where('pwd',md5($pwd))->first();
             if(empty($user)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = "用户名或密码错误";
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = "用户名或密码错误";
+                return $retJson->toJson();
             }
             //每次登录更新一次文件上传key
             $user->file_key = str_random(65);
             $user->save();
             $token = auth()->tokenById($user->uid);
             //返回用户信息
-            $ret_data->data['UserInfo'] = $user;
-            $ret_data->data['key'] = $user->file_key;
-            $ret_data->data['token'] = $token;
-            return $ret_data->toJson();
+            $retJson->data['UserInfo'] = $user;
+            $retJson->data['key'] = $user->file_key;
+            $retJson->data['token'] = $token;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -150,14 +150,14 @@ class UserController extends Controller
      * @return string
      */
     public function Logout(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try {
             auth()->invalidate();
-            return $ret_data->toJson();
+            return $retJson->toJson();
         } catch (\Exception $e) {
-            $ret_data->code = ErrorCode::TOKEN_ERROR;
-            $ret_data->message = 'token已失效';
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::TOKEN_ERROR;
+            $retJson->message = 'token已失效';
+            return $retJson->toJson();
         }
     }
 
@@ -167,15 +167,15 @@ class UserController extends Controller
      * @return string
      */
     public function GetUserInfo(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $user =  auth()->user();
-            $ret_data->data['UserInfo'] = $user;
-            return $ret_data->toJson();
+            $retJson->data['UserInfo'] = $user;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -185,16 +185,16 @@ class UserController extends Controller
      * @return string
      */
     public function GetUserWallet(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();//$request->input('uid','');
             $wallet = Wallet::firstOrCreate(['uid'=>$uid]);
-            $ret_data->data['Wallet'] = $wallet;
-            return $ret_data->toJson();
+            $retJson->data['Wallet'] = $wallet;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -204,7 +204,7 @@ class UserController extends Controller
      * @return string
      */
     public function UpdateUser(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             //$uid =  $request->input('uid','');
             $user = auth()->user();
@@ -218,16 +218,16 @@ class UserController extends Controller
             if(!empty($telephone)){
                 if(Common::IsTelephone($telephone)){
                     if(Common::CheckPhoneOrEmail('telephone',$telephone)){
-                        $ret_data->code = ErrorCode::PARAM_ERROR;
-                        $ret_data->message = "手机号已被注册";
-                        return $ret_data->toJson();
+                        $retJson->code = ErrorCode::PARAM_ERROR;
+                        $retJson->message = "手机号已被注册";
+                        return $retJson->toJson();
                     }else{
                         $user->telephone = $telephone;
                     }
                 }else{
-                    $ret_data->code = ErrorCode::PARAM_ERROR;
-                    $ret_data->message = "手机号格式错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;
+                    $retJson->message = "手机号格式错误";
+                    return $retJson->toJson();
                 }
             }
             //修改Email
@@ -235,16 +235,16 @@ class UserController extends Controller
             if(!empty($email) ){
                 if(Common::IsEmail($email)){
                     if(Common::CheckPhoneOrEmail('email',$email)){
-                        $ret_data->code = ErrorCode::PARAM_ERROR;
-                        $ret_data->message = "email已被注册";
-                        return $ret_data->toJson();
+                        $retJson->code = ErrorCode::PARAM_ERROR;
+                        $retJson->message = "email已被注册";
+                        return $retJson->toJson();
                     }else{
                         $user->telephone = $email;
                     }
                 } else{
-                    $ret_data->code = ErrorCode::PARAM_ERROR;
-                    $ret_data->message = "Email格式错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;
+                    $retJson->message = "Email格式错误";
+                    return $retJson->toJson();
                 }
             }
             //修改年龄
@@ -264,9 +264,9 @@ class UserController extends Controller
                 if($user->pwd == md5($oldpwd)){
                     $user->pwd = md5($newpwd);
                 }else{
-                    $ret_data->code = ErrorCode::PARAM_ERROR;
-                    $ret_data->message = "原密码错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;
+                    $retJson->message = "原密码错误";
+                    return $retJson->toJson();
                 }
             }
             //修改头像
@@ -275,12 +275,12 @@ class UserController extends Controller
                 $user->head_url = $head_url;
             }
             $user->save();
-            $ret_data->data['UserInfo'] = $user;
-            return $ret_data->toJson();
+            $retJson->data['UserInfo'] = $user;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -294,26 +294,26 @@ class UserController extends Controller
      * @return string
      */
     public function GetCode(Request $request){
-        $ret_data =  ReturnData::createReturn();
+        $retJson =  new ReturnData();
         try{
             $type =  $request->input('type',0);
             $source = $request->input('source',0);
             if($type!= 'telephone' && $type!= 'email'){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'type错误，必须为telephone或email';
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'type错误，必须为telephone或email';
+                return $retJson->toJson();
             }
             if($type == 'telephone') {
                 if(!Common::IsTelephone($source)){
-                    $ret_data->code = ErrorCode::PARAM_ERROR;;
-                    $ret_data->message = "手机号格式错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;;
+                    $retJson->message = "手机号格式错误";
+                    return $retJson->toJson();
                 }
             }else{
                 if(!Common::IsEmail($source)){
-                    $ret_data->code = ErrorCode::PARAM_ERROR;;
-                    $ret_data->message = "Email格式错误";
-                    return $ret_data->toJson();
+                    $retJson->code = ErrorCode::PARAM_ERROR;;
+                    $retJson->message = "Email格式错误";
+                    return $retJson->toJson();
                 }
             }
             //生产6位数验证码
@@ -330,11 +330,11 @@ class UserController extends Controller
             Cache::put($source, $code, $expiresAt);
 
             //Log::info($code);
-            return $ret_data->toJson();
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
 
     }
@@ -345,15 +345,15 @@ class UserController extends Controller
      * @return string
      */
     public function GetSysLabel(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $label = Label::where('type',1)->where('isdelete',0)->get(['id','name']);
-            $ret_data->data['Label'] = $label;
-            return $ret_data->toJson();
+            $retJson->data['Label'] = $label;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -363,16 +363,16 @@ class UserController extends Controller
      * @return string
      */
     public function GetUserLabel(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();;
             $label = Label::where('uid',$uid)->where('isdelete',0)->get(['id','name']);
-            $ret_data->data['Label'] = $label;
-            return $ret_data->toJson();
+            $retJson->data['Label'] = $label;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -382,7 +382,7 @@ class UserController extends Controller
      * @return string
      */
     public function EditLabel(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();//$request->input('uid','');
             $id = $request->input('id','');
@@ -398,12 +398,12 @@ class UserController extends Controller
             $label->uid = $uid;
             $label->save();
             //返回成功
-            $ret_data->data['Label'] = $label;
-            return $ret_data->toJson();
+            $retJson->data['Label'] = $label;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -413,16 +413,16 @@ class UserController extends Controller
      * @return string
      */
     public function DeleteLabel(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();//$request->input('uid','');
             $id = $request->input('id','');
             Label::where([['id',$id],['uid',$uid]])->update(['isdelete'=>1]);
-            return $ret_data->toJson();
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 

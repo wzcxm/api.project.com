@@ -25,19 +25,19 @@ class FriendController extends Controller
      * @return string
      */
     public function GetFriends(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();//$request->input('uid','');
             $friends = DB::table('v_friends')
                 ->where('uid',$uid)
                 ->select('friend_uid','nickname','head_url')
                 ->get();
-            $ret_data->data['Friends'] = $friends;
-            return $ret_data->toJson();
+            $retJson->data['Friends'] = $friends;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -47,13 +47,13 @@ class FriendController extends Controller
      * @return string
      */
     public function  FindFriend(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $number =  $request->input('value','');
             if(empty($number)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'value不能为空';
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'value不能为空';
+                return $retJson->toJson();
             }
             //根据uid/电话/邮箱/昵称查找好友
             $users = Users::where('uid',$number)
@@ -61,12 +61,12 @@ class FriendController extends Controller
                 ->orWhere('email',$number)
                 ->select('uid','nickname','head_url')
                 ->get();
-            $ret_data->data['Users'] = $users;
-            return $ret_data->toJson();
+            $retJson->data['Users'] = $users;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -76,23 +76,23 @@ class FriendController extends Controller
      * @return string
      */
     public function AddFriend(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid = auth()->id();
             $friend_uid =  $request->input('friend_uid','');
             $remark = $request->input('remark','');
             if(empty($friend_uid)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'friend_uid不能为空';
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'friend_uid不能为空';
+                return $retJson->toJson();
             }
             //保存添加好友请求
             Apply::insert(['ask_uid'=>$uid,'reply_uid'=>$friend_uid,'remark'=>$remark]);
-            return $ret_data->toJson();
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -102,19 +102,19 @@ class FriendController extends Controller
      * @return string
      */
     public function GetApply(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid = auth()->id();
             $apply = DB::table('v_applys')
                 ->where('reply_uid',$uid)
                 ->select('id','ask_uid','nickname','head_url','remark','status')
                 ->get();
-            $ret_data->data['Applys'] = $apply;
-            return $ret_data->toJson();
+            $retJson->data['Applys'] = $apply;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -124,14 +124,14 @@ class FriendController extends Controller
      * @return string
      */
     public function IsAgree(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
             $type = $request->input('type','');
             if(empty($id) || empty($type)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'id或status不能为空';
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'id或status不能为空';
+                return $retJson->toJson();
             }
             $apply = Apply::find($id);
             $apply->status = $type;
@@ -146,11 +146,11 @@ class FriendController extends Controller
                     Friend::insert($friends);
                 }
             });
-            return $ret_data->toJson();
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
     }
 
@@ -160,21 +160,21 @@ class FriendController extends Controller
      * @return string
      */
     public function  GetFriendInfo(Request $request){
-        $ret_data = ReturnData::createReturn();
+        $retJson = new ReturnData();
         try{
             $uid = $request->input('uid','');
             if(empty($uid)){
-                $ret_data->code = ErrorCode::PARAM_ERROR;
-                $ret_data->message = 'uid不能为空';
-                return $ret_data->toJson();
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'uid不能为空';
+                return $retJson->toJson();
             }
             $user =  Users::find($uid,['uid','nickname','head_url','telephone','level','integral','email','age','address']);
-            $ret_data->data['FriendInfo'] = $user;
-            return $ret_data->toJson();
+            $retJson->data['FriendInfo'] = $user;
+            return $retJson->toJson();
         }catch (\Exception $e){
-            $ret_data->code = ErrorCode::EXCEPTION;
-            $ret_data->message = $e->getMessage();
-            return $ret_data->toJson();
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
         }
 
     }

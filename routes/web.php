@@ -64,7 +64,15 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //圈子普通动态
     $router->get('/GetCircleDynamic','DynamicController@GetCircleDynamic');
     //普通动态置顶或取消置顶
-    $router->post('/Topping','DynamicController@Topping');
+    $router->post('/DynamicTopping','DynamicController@DynamicTopping');
     //删除动态
     $router->post('/DelDynamic','DynamicController@DelDynamic');
+    //编辑物流地址
+    $router->post('/EditAddress','AddressController@EditAddress');
+    //删除物流地址
+    $router->post('/DelAddress','AddressController@DelAddress');
+    //获取物流地址信息
+    $router->get('/GetAddress','AddressController@GetAddress');
+    //获取物流地址列表
+    $router->get('/GetAddressList','AddressController@GetAddressList');
 });
