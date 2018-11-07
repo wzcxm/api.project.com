@@ -10,10 +10,13 @@ namespace App\Http\Controllers;
 
 
 use App\Lib\Common;
+use App\Lib\DefaultEnum;
 use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
 use App\Models\Address;
+use function foo\func;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AddressController extends Controller
 {
@@ -42,7 +45,13 @@ class AddressController extends Controller
             $address_model->telephone = $telephone;
             $address_model->address = $address;
             $address_model->isdefault = $isdefault;
-            $address_model->save();
+            DB::transaction(function() use($address_model){
+                //如果本条地址设为默认地址，则其他地址改为非默认地址
+                if($address_model->isdefault == DefaultEnum::YES){
+                    Address::where('uid',$address_model->uid)->update(['isdefault'=>0]);
+                }
+                $address_model->save();
+            });
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
@@ -98,7 +107,7 @@ class AddressController extends Controller
                 $retJson->message = 'id不能为空';
                 return $retJson->toJson();
             }
-            $address_model = Address::find($id);
+            $address_model = Address::where('id',$id)->where('isdelete',0)->first();
             $retJson->data = $address_model;
             return $retJson->toJson();
         }catch (\Exception $e){
@@ -117,7 +126,7 @@ class AddressController extends Controller
         $retJson = new ReturnData();
         try{
             $uid = auth()->id();
-            $models = Address::where('uid',$uid)->get();
+            $models = Address::where('uid',$uid)->where('isdelete',0)->get();
             $retJson->data = $models;
             return $retJson->toJson();
         }catch (\Exception $e){
