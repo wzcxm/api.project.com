@@ -89,11 +89,11 @@ class UserController extends Controller
                 $wallet->save();
             });
             //生成token
-            $token = auth()->tokenById($user->uid);
+            //$token = auth()->tokenById($user->uid);
             //返回客户端，用户信息
-            $retJson->data['UserInfo'] = $user;
-            $retJson->data['key'] = $user->file_key;
-            $retJson->data['token'] = $token;
+            //$retJson->data['UserInfo'] = $user;
+            //$retJson->data['key'] = $user->file_key;
+            //$retJson->data['token'] = $token;
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
