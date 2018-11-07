@@ -68,7 +68,7 @@ class Users extends Model implements AuthenticatableContract, AuthorizableContra
         'islogin','isdynamic','iscomment',
         'isgoods','isintegralgoods',
         'isreward','isdelete','create_time',
-        'update_time'
+        'update_time','file_key'
     ];
     /**
      * 用户钱包

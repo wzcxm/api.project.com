@@ -92,6 +92,7 @@ class UserController extends Controller
             $token = auth()->tokenById($user->uid);
             //返回客户端，用户信息
             $ret_data->data['UserInfo'] = $user;
+            $ret_data->data['key'] = $user->file_key;
             $ret_data->data['token'] = $token;
             return $ret_data->toJson();
         }catch (\Exception $e){
@@ -132,6 +133,7 @@ class UserController extends Controller
             $token = auth()->tokenById($user->uid);
             //返回用户信息
             $ret_data->data['UserInfo'] = $user;
+            $ret_data->data['key'] = $user->file_key;
             $ret_data->data['token'] = $token;
             return $ret_data->toJson();
         }catch (\Exception $e){
