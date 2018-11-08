@@ -55,6 +55,8 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/Like','CommentController@Like');
     //评论
     $router->post('/Comment','CommentController@Comment');
+    //删除评论
+    $router->post('/DelComment','CommentController@DelComment');
     //发布/修改/转发动态
     $router->post('/EditDynamic','DynamicController@EditDynamic');
     //动态详情

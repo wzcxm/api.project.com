@@ -38,10 +38,18 @@ class CommentController extends Controller
                 $retJson->message = 'pro_type或pro_id或source为空';
             }else{
                 DB::transaction(function () use ($release_type,$release_id,$uid,$source){
-                    //保存点赞记录
-                    Like::insert(['release_type'=>$release_type, 'release_id'=>$release_id, 'uid'=>$uid,'source'=>$source]);
-                    //该条业务增加一次点赞数量
-                    Common::Increase($release_type,$release_id,'likenum');
+                    $count = Like::where([['release_type',$release_type],['release_id',$release_id],['uid',$uid]])->count();
+                    if(empty($count)){ //如果该条业务，没有点过赞，则增加点赞记录
+                        //保存点赞记录
+                        Like::insert(['release_type'=>$release_type, 'release_id'=>$release_id, 'uid'=>$uid,'source'=>$source]);
+                        //该条业务增加一次点赞数量
+                        Common::Increase($release_type,$release_id,'likenum');
+                    }else{ //如果已经点赞，则表示取消点赞，则删除点赞记录
+                        //删除点赞记录
+                        Like::where([['release_type',$release_type],['release_id',$release_id],['uid',$uid]])->delete();
+                        //该条业务减少一次点赞数量
+                        Common::Decrement($release_type,$release_id,'likenum');
+                    }
                 });
             }
         }catch (\Exception $e){
@@ -94,6 +102,36 @@ class CommentController extends Controller
                     }
                 });
             }
+        }catch (\Exception $e){
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+        }
+        return $retJson->toJson();
+    }
+
+    /**
+     * 删除评论
+     * @param Request $request
+     * @return string
+     */
+    public function DelComment(Request $request){
+        $retJson = new ReturnData();
+        try{
+            $id = $request->input('id','');
+            if(empty($id)){
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'id不能为空';
+            }
+            DB::transaction(function ()use($id){
+                $comment = Comment::find($id);
+                //该条业务减少一次评论数量
+                Common::Decrement($comment->release_type,$comment->release_id,'discussnum');
+                //如果是回复的评论，回复的评论的评论次数减1
+                if(!empty($comment->reply_id)){
+                    Comment::find($comment->reply_id)->decrement('discussnum');
+                }
+                $comment->delete();
+            });
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
             $retJson->message = $e->getMessage();

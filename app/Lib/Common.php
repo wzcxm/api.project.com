@@ -129,6 +129,37 @@ class Common
     }
 
     /**
+     * 自减点赞or评论or转发次数
+     * @param $release_type
+     * @param $release_id
+     * @param $column
+     */
+    public static function  Decrement($release_type,$release_id,$column){
+        $table = 'anysa_mall_dynamic';
+        switch ($release_type){
+            case ReleaseEnum::DYNAMIC:
+                $table = 'anysa_mall_dynamic';
+                break;
+            case ReleaseEnum::GOODS:
+                $table = 'anysa_mall_goods';
+                break;
+            case ReleaseEnum::INTEGRAL:
+                $table = 'anysa_mall_integral_goods';
+                break;
+            case ReleaseEnum::REWARD:
+                $table = 'anysa_mall_reward';
+                break;
+            case ReleaseEnum::DISCUSS:
+                $table = 'anysa_mall_comment';
+                break;
+            default:
+                break;
+        }
+        //自减次数
+        DB::table($table)->where('id',$release_id)->decrement($column);
+    }
+
+    /**
      * 获取业务的文件数组
      * @param $release_type
      * @param $release_id
@@ -136,7 +167,7 @@ class Common
      */
     public static function  GetFiles($release_type,$release_id){
         $files = Files::where([['release_type',$release_type],['release_id',$release_id]])->get(['fileurl']);
-        if(!empty($files)){
+        if(count($files)>0){
             return collect($files)->pluck('fileurl');
         }
         return [];
@@ -148,13 +179,12 @@ class Common
      * @param $release_id
      * @return array|\Illuminate\Support\Collection
      */
-    public static function GetComment($release_type,$release_id,$friend_uid){
+    public static function GetComment($release_type,$release_id){
         $comment = DB::table('v_comment_list')
             ->where('release_type',$release_type)
             ->where('release_id',$release_id)
-            ->whereIn('uid',$friend_uid)
-            ->get(['id','uid','nickname','head_url','comment','likenum','discussnum','create_time']);
-        if(!empty($comment)){
+            ->get(['id','reply_id','uid','nickname','head_url','comment','likenum','discussnum','create_time']);
+        if(count($comment)>0){
             return $comment;
         }
         return [];
