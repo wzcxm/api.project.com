@@ -23,6 +23,9 @@ $router->post('/Register','UserController@Register');
 $router->get('/Login','UserController@Login');
 
 $router->group(['middleware' => 'checktoken'],function() use ($router){
+    /**
+     * 用户
+     */
     //退出登录
     $router->get('/Logout','UserController@Logout');
     //获取用户信息
@@ -31,6 +34,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetUserWallet','UserController@GetUserWallet');
     //修改用户信息
     $router->post('/UpdateUser','UserController@UpdateUser');
+    /**
+     * 好友
+     */
     //获取用户好友
     $router->get('/GetFriends','FriendController@GetFriends');
     //查找好友
@@ -43,20 +49,29 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/IsAgree','FriendController@IsAgree');
     //查看好友信息
     $router->get('/GetFriendInfo','FriendController@GetFriendInfo');
+    /**
+     * 标签
+     */
     //获取系统标签
-    $router->get('/GetSysLabel','UserController@GetSysLabel');
+    $router->get('/GetSysLabel','LabelController@GetSysLabel');
     //获取用户标签
-    $router->get('/GetUserLabel','UserController@GetUserLabel');
+    $router->get('/GetUserLabel','LabelController@GetUserLabel');
     //编辑标签(新增/修改)
-    $router->post('/EditLabel','UserController@EditLabel');
+    $router->post('/EditLabel','LabelController@EditLabel');
     //删除标签
-    $router->post('/DeleteLabel','UserController@DeleteLabel');
+    $router->post('/DeleteLabel','LabelController@DeleteLabel');
+    /**
+     * 评论、点赞
+     */
     //点赞
     $router->post('/Like','CommentController@Like');
     //评论
     $router->post('/Comment','CommentController@Comment');
     //删除评论
     $router->post('/DelComment','CommentController@DelComment');
+    /**
+     * 普通动态
+     */
     //发布/修改/转发动态
     $router->post('/EditDynamic','DynamicController@EditDynamic');
     //动态详情
@@ -69,6 +84,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/DynamicTopping','DynamicController@DynamicTopping');
     //删除动态
     $router->post('/DelDynamic','DynamicController@DelDynamic');
+    /**
+     * 我的物流地址
+     */
     //编辑物流地址
     $router->post('/EditAddress','AddressController@EditAddress');
     //删除物流地址

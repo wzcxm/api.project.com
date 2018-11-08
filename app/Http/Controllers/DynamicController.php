@@ -4,6 +4,7 @@
  * User: Administrator
  * Date: 2018/10/23
  * Time: 16:42
+ * 我的普通动态
  */
 
 namespace App\Http\Controllers;
