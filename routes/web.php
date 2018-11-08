@@ -72,8 +72,10 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     /**
      * 普通动态
      */
-    //发布/修改/转发动态
+    //发布/修改
     $router->post('/EditDynamic','DynamicController@EditDynamic');
+    //转发
+    $router->post('/TurnDynamic','DynamicController@TurnDynamic');
     //动态详情
     $router->get('/GetDynamic','DynamicController@GetDynamic');
     //我的普通动态列表

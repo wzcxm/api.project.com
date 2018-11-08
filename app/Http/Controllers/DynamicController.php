@@ -39,62 +39,42 @@ class DynamicController extends Controller
             $access = $request->input('access','');
             $issquare = $request->input('issquare','');
             $label = $request->input('label','');
-            $type = $request->input('type','');
-            $front_id = $request->input('turn_id',0);
             $visible_uids = $request->input('visible_uids','');
             $files = $request->input('files','');
             $address = $request->input('address','');
-            $source = $request->input('source',0);
             //生成动态model
             if(empty($id)){
                 $dynamic =  new Dynamic();
+                $dynamic->uid = $uid; //发布用户
             }else{
                 $dynamic =  Dynamic::find($id);
+                $dynamic->update_time = date("Y-m-d H:i:s");
             }
-            $dynamic->uid = $uid; //发布用户
             $dynamic->content = $content; //发布内容
-            if($type == DefaultEnum::YES){  //转发，只需保存发布内容和转发的id
-                $dynamic->type = $type;
-                $dynamic->front_id = $front_id; //转发的id
-                //保存动态
-                DB::transaction(function ()use($dynamic,$source){
-                    //保存转发动态
-                    $dynamic->save();
-                    //新增转发，保存转发记录
-                    if(empty($id)){
-                        //保存转发记录
-                        Turn::insert(['release_type'=>ReleaseEnum::DYNAMIC, 'release_id'=>$dynamic->front_id, 'uid'=>$dynamic->uid,'source'=>$source]);
-                        //该条动态增加一次转发
-                        Common::Increase(ReleaseEnum::DYNAMIC,$dynamic->front_id,'turnnum');
-                    }
-                });
+            if($issquare == DefaultEnum::YES){    //如果允许发布到广场，那么访问权限默认是公开的
+                $dynamic->issquare = DefaultEnum::YES;
+                $dynamic->access = AccessEnum::PUBLIC;
             }else{
-                if($issquare == DefaultEnum::YES){    //如果允许发布到广场，那么访问权限默认是公开的
-                    $dynamic->issquare = DefaultEnum::YES;
-                    $dynamic->access = AccessEnum::PUBLIC;
-                }else{
-                    $dynamic->access = $access;
-                    if($access == AccessEnum::PARTIAL){          //如果是部分用户可见，则保存可见用户（数组形式）
-                        $dynamic->visible_uids = explode('|',$visible_uids);
-                    }
+                $dynamic->access = $access;
+                if($access == AccessEnum::PARTIAL){          //如果是部分用户可见，则保存可见用户（数组形式）
+                    $dynamic->visible_uids = explode('|',$visible_uids);
                 }
-                $dynamic->label = $label;  //标签
-                $dynamic->address = $address;   //所在地址
-                if(!empty($files)){    //如果文件不为空，那么表示有附件
-                    $dynamic->isannex = DefaultEnum::YES;
-                }
-                //保存动态
-                DB::transaction(function () use($dynamic,$files){
-                    //保存动态
-                    $dynamic->save();
-                    //如有文件，保存文件记录
-                    if(!empty($files)){
-                        //保存文件
-                        Common::SaveFiles(ReleaseEnum::DYNAMIC,$dynamic->id,$files);
-                    }
-                });
-
             }
+            $dynamic->label = $label;  //标签
+            $dynamic->address = $address;   //所在地址
+            if(!empty($files)){    //如果文件不为空，那么表示有附件
+                $dynamic->isannex = DefaultEnum::YES;
+            }
+            //保存动态
+            DB::transaction(function () use($dynamic,$files){
+                //保存动态
+                $dynamic->save();
+                //如有文件，保存文件记录
+                if(!empty($files)){
+                    //保存文件
+                    Common::SaveFiles(ReleaseEnum::DYNAMIC,$dynamic->id,$files);
+                }
+            });
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
@@ -103,6 +83,49 @@ class DynamicController extends Controller
         }
     }
 
+    /**
+     * 转发动态
+     * @param Request $request
+     * @return string
+     */
+    public function TurnDynamic(Request $request){
+        $retJson = new ReturnData();
+        try{
+            $uid =  auth()->id();
+            $front_id = $request->input('turn_id',0);
+            $source = $request->input('source',0);
+            if(empty($front_id)){
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = '转发id不能为空';
+                return $retJson->toJson();
+            }
+            //生成转发动态model
+            $dynamic =  new Dynamic();
+            $dynamic->uid = $uid; //发布用户
+            $dynamic->content = '转发动态'; //发布内容
+            $dynamic->type = DefaultEnum::YES;
+            $dynamic->front_id = $front_id; //转发的id
+            //保存动态
+            DB::transaction(function () use($dynamic,$source){
+                //保存转发动态
+                $dynamic->save();
+                //保存转发记录
+                Turn::insert(
+                    ['release_type'=>ReleaseEnum::DYNAMIC,
+                    'release_id'=>$dynamic->front_id,
+                    'uid'=>$dynamic->uid,
+                    'source'=>$source]);
+                //该条动态增加一次转发
+                Common::Increase(ReleaseEnum::DYNAMIC,$dynamic->front_id,'turnnum');
+
+            });
+            return $retJson->toJson();
+        }catch (\Exception $e){
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
+        }
+    }
 
     /**
      * 获取一条动态/转发动态信息
@@ -318,11 +341,7 @@ class DynamicController extends Controller
                 return $retJson->toJson();
             }
             $dynamic =Dynamic::find($id);
-            if($dynamic->topping == DefaultEnum::YES){
-                $dynamic->topping = DefaultEnum::NO;
-            }else{
-                $dynamic->topping = DefaultEnum::YES;
-            }
+            $dynamic->topping = $dynamic->topping == DefaultEnum::YES ? DefaultEnum::NO : DefaultEnum::YES;
             $dynamic->save();
             return $retJson->toJson();
         }catch (\Exception $e){
