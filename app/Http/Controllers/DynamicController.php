@@ -36,9 +36,9 @@ class DynamicController extends Controller
             $uid =  auth()->id();
             $id = $request->input('id','');
             $content = $request->input('content','');
-            $access = $request->input('access','');
-            $issquare = $request->input('issquare','');
-            $label = $request->input('label','');
+            $access = $request->input('access',0);
+            $issquare = $request->input('issquare',0);
+            $label = $request->input('label',0);
             $visible_uids = $request->input('visible_uids','');
             $files = $request->input('files','');
             $address = $request->input('address','');
@@ -109,11 +109,13 @@ class DynamicController extends Controller
             DB::transaction(function () use($dynamic,$source){
                 //保存转发动态
                 $dynamic->save();
+                $turn = Dynamic::find($dynamic->front_id);
                 //保存转发记录
                 Turn::insert(
                     ['release_type'=>ReleaseEnum::DYNAMIC,
                     'release_id'=>$dynamic->front_id,
                     'uid'=>$dynamic->uid,
+                    'issue_uid'=>$turn->uid,
                     'source'=>$source]);
                 //该条动态增加一次转发
                 Common::Increase(ReleaseEnum::DYNAMIC,$dynamic->front_id,'turnnum');
@@ -174,7 +176,7 @@ class DynamicController extends Controller
             $retJson->data['Dynamic'] = $dynamic;
             //当前查看用户是否点赞
             $uid = auth()->id();
-            $retJson->data['IsLike'] = Like::where([['release_type',ReleaseEnum::DYNAMIC],['release_id',$dynamic->id],['uid',$uid]])->count();
+            $retJson->data['IsLike'] =Common::IsLike(ReleaseEnum::DYNAMIC,$dynamic->id,$uid);
             //评论信息
             $retJson->data['Comment'] = Common::GetComment(ReleaseEnum::DYNAMIC,$dynamic->id);
             return $retJson->toJson();

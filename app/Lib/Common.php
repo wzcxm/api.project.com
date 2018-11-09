@@ -10,6 +10,7 @@ namespace App\Lib;
 
 use App\Models\Files;
 use App\Models\Friend;
+use App\Models\Like;
 use App\Models\Users;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +95,9 @@ class Common
         foreach ($file_urls as $url){
             $file_arr[] = ['release_type'=>$release_type,'release_id'=>$release_id,'fileurl'=>$url];
         }
+        //先清空
+        Files::where([['release_type',$release_type],['release_id',$release_id]])->delete();
+        //保存文件地址
         Files::insert($file_arr);
     }
 
@@ -104,28 +108,37 @@ class Common
      * @param $uid
      */
     public static function  Increase($release_type,$release_id,$column){
-        $table = 'anysa_mall_dynamic';
+        $table = self::GetTable($release_type);
+        if(!empty($table)){
+            //自增次数
+            DB::table($table)->where('id',$release_id)->increment($column);
+        }
+
+    }
+
+    //根据业务类型，获取表名
+    private static function GetTable($release_type){
         switch ($release_type){
             case ReleaseEnum::DYNAMIC:
-                $table = 'anysa_mall_dynamic';
+                $table = 'pro_mall_dynamic';
                 break;
             case ReleaseEnum::GOODS:
-                $table = 'anysa_mall_goods';
+                $table = 'pro_mall_goods';
                 break;
             case ReleaseEnum::INTEGRAL:
-                $table = 'anysa_mall_integral_goods';
+                $table = 'pro_mall_integral_goods';
                 break;
             case ReleaseEnum::REWARD:
-                $table = 'anysa_mall_reward';
+                $table = 'pro_mall_reward';
                 break;
             case ReleaseEnum::DISCUSS:
-                $table = 'anysa_mall_comment';
+                $table = 'pro_mall_comment';
                 break;
             default:
+                $table = '';
                 break;
         }
-        //自增次数
-        DB::table($table)->where('id',$release_id)->increment($column);
+        return $table;
     }
 
     /**
@@ -135,28 +148,11 @@ class Common
      * @param $column
      */
     public static function  Decrement($release_type,$release_id,$column){
-        $table = 'anysa_mall_dynamic';
-        switch ($release_type){
-            case ReleaseEnum::DYNAMIC:
-                $table = 'anysa_mall_dynamic';
-                break;
-            case ReleaseEnum::GOODS:
-                $table = 'anysa_mall_goods';
-                break;
-            case ReleaseEnum::INTEGRAL:
-                $table = 'anysa_mall_integral_goods';
-                break;
-            case ReleaseEnum::REWARD:
-                $table = 'anysa_mall_reward';
-                break;
-            case ReleaseEnum::DISCUSS:
-                $table = 'anysa_mall_comment';
-                break;
-            default:
-                break;
+        $table = self::GetTable($release_type);
+        if(!empty($table)) {
+            //自减次数
+            DB::table($table)->where('id', $release_id)->decrement($column);
         }
-        //自减次数
-        DB::table($table)->where('id',$release_id)->decrement($column);
     }
 
     /**
@@ -170,7 +166,7 @@ class Common
         if(count($files)>0){
             return collect($files)->pluck('fileurl');
         }
-        return [];
+        return null;
     }
 
     /**
@@ -187,7 +183,7 @@ class Common
         if(count($comment)>0){
             return $comment;
         }
-        return [];
+        return null;
     }
 
     /**
@@ -199,4 +195,23 @@ class Common
         return Friend::where('uid',$uid)->pluck('friend_uid')->push($uid);
     }
 
+
+    /**
+     * 是否点赞
+     * @param $release_type
+     * @param $release_id
+     * @param $uid
+     * @return bool
+     */
+    public static  function IsLike($release_type,$release_id,$uid){
+        $count = Like::where(
+            [['release_type',$release_type],
+            ['release_id',$release_id],
+                ['uid',$uid]])->count();
+        if($count>0){
+            return true;
+        }else{
+            return false;
+        }
+    }
 }

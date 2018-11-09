@@ -97,4 +97,13 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetAddress','AddressController@GetAddress');
     //获取物流地址列表
     $router->get('/GetAddressList','AddressController@GetAddressList');
+    /**
+     * 付费商品
+     */
+    //发布/修改商品
+    $router->post('/EditGoods','GoodsController@EditGoods');
+    //转卖商品
+    $router->post('/TurnGoods','GoodsController@TurnGoods');
+    //获取商品详情
+    $router->get('/GetGoods','GoodsController@GetGoods');
 });
