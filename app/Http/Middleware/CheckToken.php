@@ -12,10 +12,9 @@ use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
-
-
 class CheckToken extends BaseMiddleware
 {
 
@@ -35,9 +34,8 @@ class CheckToken extends BaseMiddleware
                 try {
                     // 刷新用户的 token
                     $token = auth()->refresh();
-                    // 使用一次性登录以保证此次请求的成功
-                    $uid = auth()->manager()->getPayloadFactory()->buildClaimsCollection()->toPlainArray()['sub'];
-                    Auth::guard()->onceUsingId($uid);
+                    // 给当前的请求设置性的token,以备在本次请求中需要调用用户信息
+                    $request->headers->set('Authorization','Bearer '.$token);
                     // 在响应头中返回新的 token
                     return $this->setAuthenticationHeader($next($request), $token);
                 } catch (JWTException $e) {
