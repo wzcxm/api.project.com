@@ -166,7 +166,8 @@ class GoodsController extends Controller
                 'uid'=>$goods->uid,
                 'nickname'=>$goods->nickname,
                 'head_url'=>$goods->head_url,
-                'create_time'=>$goods->create_time
+                'create_time'=>$goods->create_time,
+                'buytype'=>$goods->buytype,
                 ];
             //原创商品
             if($goods->buytype == DefaultEnum::NO){
