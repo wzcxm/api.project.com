@@ -38,7 +38,7 @@ class EmailJob extends Job
         $email = $this->email;
         Mail::send('emails.email', ['code' => $code], function($message) use($email)
         {
-            $message->to($email)->subject('Anysa验证码');
+            $message->to($email)->subject('TestEmail验证码');
         });
 
     }

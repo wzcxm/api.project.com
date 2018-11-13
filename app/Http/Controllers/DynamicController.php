@@ -333,18 +333,28 @@ class DynamicController extends Controller
      * @param Request $request
      * @return string
      */
-    public function DynamicTopping(Request $request){
+    public function Topping(Request $request){
         $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
-            if(empty($id)){
+            $type = $request->input('type','');
+            if(empty($id) || empty($type)){
                 $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id不能为空';
+                $retJson->message = 'id和type不能为空';
                 return $retJson->toJson();
             }
-            $dynamic =Dynamic::find($id);
-            $dynamic->topping = $dynamic->topping == DefaultEnum::YES ? DefaultEnum::NO : DefaultEnum::YES;
-            $dynamic->save();
+            $table  =  Common::GetTable($type);
+            if(empty($table)){
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'type值错误';
+                return $retJson->toJson();
+            }
+            $model = DB::table($table)->where('id',$id)->first();
+            if($model->topping == DefaultEnum::YES){
+                DB::table($table)->where('id',$id)->update(['topping'=>0]);
+            }else{
+                DB::table($table)->where('id',$id)->update(['topping'=>1]);
+            }
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
@@ -358,20 +368,23 @@ class DynamicController extends Controller
      * @param Request $request
      * @return string
      */
-    public function DelDynamic(Request $request){
+    public function DelBusiness(Request $request){
         $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
-            if(empty($id)){
+            $type = $request->input('type','');
+            if(empty($id) || empty($type)){
                 $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id不能为空';
+                $retJson->message = 'id和type不能为空';
                 return $retJson->toJson();
             }
-            DB::transaction(function ()use($id){
-                $dynamic =Dynamic::find($id);
-                $dynamic->isdelete = 1;
-                $dynamic->save();
-            });
+            $table  =  Common::GetTable($type);
+            if(empty($table)){
+                $retJson->code = ErrorCode::PARAM_ERROR;
+                $retJson->message = 'type值错误';
+                return $retJson->toJson();
+            }
+            DB::table($table)->where('id',$id)->update(['isdelete'=>1]);
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;

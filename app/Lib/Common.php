@@ -87,7 +87,6 @@ class Common
      * @param $release_type
      * @param $release_id
      * @param $files
-     * @return array
      */
     public static function SaveFiles($release_type,$release_id,$files){
         $file_urls = explode('|',$files);
@@ -105,7 +104,7 @@ class Common
      * 自增点赞or评论or转发次数
      * @param $release_type
      * @param $release_id
-     * @param $uid
+     * @param $column
      */
     public static function  Increase($release_type,$release_id,$column){
         $table = self::GetTable($release_type);
@@ -116,8 +115,12 @@ class Common
 
     }
 
-    //根据业务类型，获取表名
-    private static function GetTable($release_type){
+    /**
+     * 根据业务类型，获取表名
+     * @param $release_type
+     * @return string
+     */
+    public static function GetTable($release_type){
         switch ($release_type){
             case ReleaseEnum::DYNAMIC:
                 $table = 'pro_mall_dynamic';
@@ -156,7 +159,7 @@ class Common
     }
 
     /**
-     * 获取业务的文件数组
+     * 获取业务的文件地址数组
      * @param $release_type
      * @param $release_id
      * @return array
@@ -212,6 +215,34 @@ class Common
             return true;
         }else{
             return false;
+        }
+    }
+
+
+    /**
+     * 设置商品返回值
+     * @param $ret_arr
+     * @param $data
+     * @param $type
+     */
+    public static function SetGoods(&$ret_arr,$data,$type){
+        $ret_arr['name'] = $data->name; //商品名称
+        $ret_arr['remark'] = $data->remark; //描述
+        $ret_arr['number'] = $data->number; //库存数量
+        $ret_arr['label_name'] = $data->label_name; //标签
+        $ret_arr['address'] = $data->address; //地址
+        $ret_arr['price'] = $data->price; //单价
+        if(!empty($data->firstprice)){
+            $ret_arr['firstprice'] = $data->firstprice; //原价
+        }
+        $ret_arr['fare'] = $data->fare;  //运费
+        $ret_arr['limit'] = $data->limit; //转卖上限
+        $ret_arr['turn_num'] = $data->turn_num; //转卖次数
+        $ret_arr['like_num'] = $data->like_num; //点赞次数
+        $ret_arr['discuss_num'] = $data->discuss_num; //评论次数
+        $ret_arr['sell_num'] = $data->sell_num;  //销量
+        if($data->isannex == DefaultEnum::YES){
+            $ret_arr['files'] = self::GetFiles($type,$data->id); //图片地址
         }
     }
 }

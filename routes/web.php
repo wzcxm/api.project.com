@@ -83,9 +83,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //圈子普通动态
     $router->get('/GetCircleDynamic','DynamicController@GetCircleDynamic');
     //普通动态置顶或取消置顶
-    $router->post('/DynamicTopping','DynamicController@DynamicTopping');
+    $router->post('/Topping','DynamicController@Topping');
     //删除动态
-    $router->post('/DelDynamic','DynamicController@DelDynamic');
+    $router->post('/DelBusiness','DynamicController@DelBusiness');
     /**
      * 我的物流地址
      */

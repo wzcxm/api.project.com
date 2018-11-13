@@ -239,7 +239,7 @@ class UserController extends Controller
                         $retJson->message = "email已被注册";
                         return $retJson->toJson();
                     }else{
-                        $user->telephone = $email;
+                        $user->email = $email;
                     }
                 } else{
                     $retJson->code = ErrorCode::PARAM_ERROR;
