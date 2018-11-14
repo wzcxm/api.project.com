@@ -11,6 +11,7 @@ namespace App\Lib;
 use App\Models\Files;
 use App\Models\Friend;
 use App\Models\Like;
+use App\Models\Order;
 use App\Models\Users;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -224,12 +225,13 @@ class Common
      * @param $ret_arr
      * @param $data
      * @param $type
+     * @param $order_type
      */
-    public static function SetGoods(&$ret_arr,$data,$type){
-        $ret_arr['name'] = $data->name; //商品名称
+    public static function SetGoods(&$ret_arr,$data,$type,$order_type){
+        $ret_arr['title'] = $data->title; //商品名称
         $ret_arr['remark'] = $data->remark; //描述
         $ret_arr['number'] = $data->number; //库存数量
-        $ret_arr['label_name'] = $data->label_name; //标签
+        $ret_arr['label_name'] = $data->labelInfo->name; //标签
         $ret_arr['address'] = $data->address; //地址
         $ret_arr['price'] = $data->price; //单价
         if(!empty($data->firstprice)){
@@ -237,12 +239,20 @@ class Common
         }
         $ret_arr['fare'] = $data->fare;  //运费
         $ret_arr['limit'] = $data->limit; //转卖上限
-        $ret_arr['turn_num'] = $data->turn_num; //转卖次数
-        $ret_arr['like_num'] = $data->like_num; //点赞次数
-        $ret_arr['discuss_num'] = $data->discuss_num; //评论次数
-        $ret_arr['sell_num'] = $data->sell_num;  //销量
+        $ret_arr['sell_num'] = self::GetSellNum($data->id,$order_type);  //销量
         if($data->isannex == DefaultEnum::YES){
             $ret_arr['files'] = self::GetFiles($type,$data->id); //图片地址
         }
     }
+
+    /**
+     * 获取商品的销售量
+     * @param $orderId
+     * @param $type
+     * @return mixed
+     */
+    private static function GetSellNum($orderId,$type){
+        return  Order::where('order_type',$type)->where('goods_id',$orderId)->count();
+    }
+
 }

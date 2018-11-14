@@ -41,4 +41,27 @@ class Dynamic extends Model
     protected $casts = [
         'visible_uids' => 'array',
     ];
+    /**
+     * 获取原创动态
+     */
+    public function frontDynamic(){
+        return $this->hasOne('App\Models\Dynamic','id','front_id');
+    }
+
+    /**
+     * 发布人信息
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function userInfo(){
+        return $this->hasOne('App\Models\Users','uid','uid');
+    }
+
+    /**
+     * label名称
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function labelInfo(){
+        return $this->hasOne('App\Models\Label','id','label');
+    }
+
 }

@@ -79,7 +79,7 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //动态详情
     $router->get('/GetDynamic','DynamicController@GetDynamic');
     //我的普通动态列表
-    $router->get('/MyDynamic','DynamicController@MyDynamic');
+    $router->get('/GetDynamicList','DynamicController@GetDynamicList');
     //圈子普通动态
     $router->get('/GetCircleDynamic','DynamicController@GetCircleDynamic');
     //普通动态置顶或取消置顶
@@ -106,4 +106,17 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/TurnGoods','GoodsController@TurnGoods');
     //获取商品详情
     $router->get('/GetGoods','GoodsController@GetGoods');
+    //获取商品列表
+    $router->get('/GetGoodsList','GoodsController@GetGoodsList');
+    //获取圈子商品列表
+    $router->get('/GetCircleGoods','GoodsController@GetCircleGoods');
+    /**
+     * 积分商品
+     */
+    //发布/修改商品
+    $router->post('/EditIntegral','IntegralControllers@EditIntegral');
+    //转卖商品
+    $router->post('/TurnIntegral','IntegralControllers@TurnIntegral');
+    //获取商品详情
+    $router->get('/GetIntegral','IntegralControllers@GetIntegral');
 });

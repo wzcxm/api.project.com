@@ -39,6 +39,7 @@ class CheckToken extends BaseMiddleware
                     // 在响应头中返回新的 token
                     return $this->setAuthenticationHeader($next($request), $token);
                 } catch (JWTException $e) {
+                    Log::error($e->getMessage());
                     $retJson->code = ErrorCode::TOKEN_ERROR;
                     $retJson->message = 'token已失效,请重新登录';
                     return $retJson->toJson();

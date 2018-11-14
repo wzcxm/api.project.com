@@ -143,37 +143,32 @@ class DynamicController extends Controller
                 $retJson->message = 'id不能为空';
                 return $retJson->toJson();
             }
-            $dynamic = DB::table('v_dynamic')->where('id',$id)->first();
+            $dynamic = Dynamic::find($id);
             if(empty($dynamic)){
                 $retJson->code = ErrorCode::DATA_LOGIN;
                 $retJson->message = '动态数据不存在';
                 return $retJson->toJson();
             }
-            if($dynamic->type == DefaultEnum::YES) { //转发，加入转发的动态信息
-                if(!empty($dynamic->front_id)){
-                    //获取被转发的动态信息
-                    $turn_dynamic = DB::table('v_dynamic')
-                        ->where('id',$dynamic->front_id)
-                        ->select(['id','uid','nickname','head_url','content',
-                            'like_num','discuss_num','turn_num','label_name',
-                            'address','isannex'])
-                        ->first();
-                    if(empty($turn_dynamic)){
-                        //获取被转动态的文件地址
-                        if($turn_dynamic->isannex == DefaultEnum::YES){
-                            $turn_dynamic->files=Common::GetFiles(ReleaseEnum::DYNAMIC,$turn_dynamic->id);
-                        }
-                        $dynamic->turn =  $turn_dynamic;
-                    }
-                }
-            }else{//原创动态，如果有文件，加入文件地址
-                //如有文件，加入发布文件
-                if($dynamic->isannex == DefaultEnum::YES){
-                    $dynamic->files= Common::GetFiles(ReleaseEnum::DYNAMIC,$dynamic->id);
+            $retDynamic = [
+                'type'=>$dynamic->type, //发布类型：原创/转发
+                'create_time'=>$dynamic->create_time, //发布时间
+            ];
+            self::SetRetDynamic($retDynamic,$dynamic);
+            if($dynamic->type == DefaultEnum::NO){
+                $retDynamic['label_name'] = $dynamic->labelInfo->name; //标签
+                $retDynamic['address'] = $dynamic->address; //地址
+            }else{
+                $turn = $dynamic->frontDynamic;
+                if(!empty($turn)){
+                    $retDynamic['turn'] = [
+                        'label_name' => $turn->labelInfo->name, //标签
+                        'address'=>$turn->address,
+                    ];
+                    self::SetRetDynamic($retDynamic['turn'],$turn);
                 }
             }
             //动态信息/转发动态信息
-            $retJson->data['Dynamic'] = $dynamic;
+            $retJson->data['Dynamic'] = $retDynamic;
             //当前查看用户是否点赞
             $uid = auth()->id();
             $retJson->data['IsLike'] =Common::IsLike(ReleaseEnum::DYNAMIC,$dynamic->id,$uid);
@@ -187,20 +182,34 @@ class DynamicController extends Controller
         }
     }
 
+    //设置返回数据
+    private function SetRetDynamic(&$retArr,$data){
+        $retArr['id'] = $data->id;
+        $retArr['uid'] = $data->uid;
+        $retArr['nickname']=$data->userInfo->nickname; //发布人昵称
+        $retArr['head_url']=$data->userInfo->head_url;//发布人头像
+        $retArr['content'] =$data->content; //发布类容
+        $retArr['turn_num'] = $data->turnnum + $data->turnnum_add; //转发次数
+        $retArr['like_num'] = $data->likenum +  $data->likenum_add;//点赞次数
+        $retArr['discuss_num'] = $data->discussnum + $data->discussnum_add; //评论次数
+        //如有文件，加入发布文件
+        if($data->isannex == DefaultEnum::YES){
+            $retArr['files']= Common::GetFiles(ReleaseEnum::DYNAMIC,$data->id);
+        }
+    }
+
+
     /**
      * 我的普通动态列表
      * @param Request $request
      * @return string
      */
-    public function MyDynamic(Request $request){
+    public function GetDynamicList(Request $request){
         $retJson = new ReturnData();
         try{
-            $uid = auth()->id();
-            $find_uid = $request->input('find_uid','');
             //$find_uid不为空时，表示查询该用户的动态列表
-            if(!empty($find_uid)){
-                $uid = $find_uid;
-            }
+            $uid = $request->input('find_uid',auth()->id());
+
             //获取我的普通动态数据，每次显示10条
             $data_list = DB::table('v_dynamic_list')->where('uid',$uid)
                 ->orderBy('id','desc')->simplePaginate(10);
@@ -216,8 +225,8 @@ class DynamicController extends Controller
             $files_id_arr = array_map(function ($item){
                 if($item['type'] == DefaultEnum::NO && $item['isannex'] == DefaultEnum::YES){
                     return $item['id'];
-                }else if($item['type'] == DefaultEnum::YES && $item['isannex_z'] == DefaultEnum::YES){
-                    return $item['front_id'];
+                }else if($item['type'] == DefaultEnum::YES && $item['init_annex'] == DefaultEnum::YES){
+                    return $item['init_id'];
                 }
             },$items);
             //去除null和重复的值
@@ -231,16 +240,16 @@ class DynamicController extends Controller
                 //添加文件
                 if($data->type == DefaultEnum::NO && $data->isannex == DefaultEnum::YES){
                     $id =  $data->id;
-                }else if($data->type == DefaultEnum::YES && $data->isannex_z == DefaultEnum::YES){
-                    $id =  $data->front_id;
+                }else if($data->type == DefaultEnum::YES && $data->init_annex == DefaultEnum::YES){
+                    $id =  $data->init_id;
                 }
                 if(!empty($id)){
-                    $data->files = array_column(array_filter($files,function ($itme) use($id){
-                        return $itme['release_id'] == $id;
+                    $data->files = array_column(array_filter($files,function ($item) use($id){
+                        return $item['release_id'] == $id;
                     }),'fileurl');
                 }
             }
-            $retJson->data['MyDynamic'] = $data_list;
+            $retJson->data['DynamicList'] = $data_list;
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
@@ -281,7 +290,8 @@ class DynamicController extends Controller
                                 return $item;
                             }
                         }elseif($item['access']==AccessEnum::PARTIAL){
-                            if(in_array($item['visible_uids'],$uid) || $item['uid'] == $uid){
+                            $arr = json_decode($item['visible_uids'],true);
+                            if(in_array($uid,$arr) || $item['uid'] == $uid){
                                 return $item;
                             }
                         }
@@ -293,8 +303,8 @@ class DynamicController extends Controller
             $files_id_arr = array_map(function ($item){
                 if($item['type'] == DefaultEnum::NO && $item['isannex'] == DefaultEnum::YES){
                     return $item['id'];
-                }else if($item['type'] == DefaultEnum::YES && $item['isannex_z'] == DefaultEnum::YES){
-                    return $item['front_id'];
+                }else if($item['type'] == DefaultEnum::YES && $item['init_annex'] == DefaultEnum::YES){
+                    return $item['init_id'];
                 }
             },$items);
             //去除null和重复的值
@@ -308,8 +318,8 @@ class DynamicController extends Controller
                 //添加文件
                 if($data->type == DefaultEnum::NO && $data->isannex == DefaultEnum::YES){
                     $id =  $data->id;
-                }else if($data->type == DefaultEnum::YES && $data->isannex_z == DefaultEnum::YES){
-                    $id =  $data->front_id;
+                }else if($data->type == DefaultEnum::YES && $data->init_annex == DefaultEnum::YES){
+                    $id =  $data->init_id;
                 }
                 if(!empty($id)){
                     $data->files = array_column(array_filter($files,function ($item) use($id){
@@ -317,7 +327,7 @@ class DynamicController extends Controller
                     }),'fileurl');
                 }
             }
-            $retJson->data['MyDynamic'] = $data_list;
+            $retJson->data['CircleDynamic'] = $data_list;
             return $retJson->toJson();
 
         }catch (\Exception $e){

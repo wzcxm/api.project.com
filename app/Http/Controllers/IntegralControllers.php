@@ -31,7 +31,7 @@ class IntegralControllers extends Controller
         try{
             $uid = auth()->id();
             $id = $request->input('id','');
-            $name = $request->input('name','');
+            $title = $request->input('title','');
             $remark = $request->input('remark','');
             $number = $request->input('number',0);
             $label = $request->input('label',0);
@@ -53,7 +53,7 @@ class IntegralControllers extends Controller
                 $integral = IntegralGoods::find($id);
                 $integral->update_time = date("Y-m-d H:i:s");
             }
-            $integral->name = $name;
+            $integral->title = $title;
             $integral->remark = $remark;
             $integral->number = $number;
             $integral->label = $label;
@@ -62,6 +62,7 @@ class IntegralControllers extends Controller
                 $integral->issquare = DefaultEnum::YES;
                 $integral->access = AccessEnum::PUBLIC;
             }else{
+                $integral->issquare = DefaultEnum::NO;
                 $integral->access = $access;
                 if($access == AccessEnum::PARTIAL){          //如果是部分用户可见，则保存可见用户（数组形式）
                     $integral->visible_uids = explode('|',$visible_uids);
@@ -120,12 +121,12 @@ class IntegralControllers extends Controller
                 //保存转卖记录
                 Turn::insert(
                     ['release_type'=>ReleaseEnum::GOODS,
-                        'release_id'=>$integral->front_id,
+                        'release_id'=>$integral->first_id,
                         'uid'=>$integral->uid,
                         'issue_uid'=>$issue_uid,
                         'source'=>$source]);
                 //该条动态增加一次转卖
-                Common::Increase(ReleaseEnum::INTEGRAL,$integral->front_id,'turnnum');
+                Common::Increase(ReleaseEnum::INTEGRAL,$integral->first_id,'turnnum');
             });
             return $retJson->toJson();
         }catch (\Exception $e){
@@ -149,29 +150,32 @@ class IntegralControllers extends Controller
                 $retJson->message = '商品id不能为空';
                 return $retJson->toJson();
             }
-            $integral = DB::table('v_integral_info') ->where('id',$id)->first();
+            $integral = IntegralGoods::find($id);
             if(empty($integral)){
                 $retJson->code = ErrorCode::DATA_LOGIN;
                 $retJson->message = '数据不存在';
                 return $retJson->toJson();
             }
             $ret_integral = [
-                'id'=>$integral->id,
-                'uid'=>$integral->uid,
-                'nickname'=>$integral->nickname,
-                'head_url'=>$integral->head_url,
-                'create_time'=>$integral->create_time,
-                'buytype'=>$integral->buytype,
-                'turnprice'=>$integral->turnprice
+                'id'=>$integral->id, //商品id
+                'uid'=>$integral->uid, //发布人uid
+                'nickname'=>$integral->userInfo->nickne, //发布人昵称
+                'head_url'=>$integral->userInfo->head_url, //发布人头像
+                'create_time'=>$integral->create_time, //发布时间
+                'buytype'=>$integral->buytype, //类型：原创/转卖
+                'turnprice'=>$integral->turnprice, //转卖积分
+                'turn_num' => $integral->turn_num, //转卖次数
+                'like_num' => $integral->like_num,//点赞次数
+                'discuss_num' => $integral->discuss_num, //评论次数
             ];
             //原创商品
             if($integral->buytype == DefaultEnum::NO){
-                Common::SetGoods($ret_integral,$integral,ReleaseEnum::INTEGRAL);
+                Common::SetGoods($ret_integral,$integral,ReleaseEnum::INTEGRAL,1);
             }else{   //转卖商品
                 if(!empty($integral->first_id)){
-                    $turn_integral = DB::table('v_integral_info')->where('id',$integral->first_id)->first();
+                    $turn_integral = $integral->firstIntegral;
                     if(!empty($turn_integral)){
-                        Common::SetGoods($ret_goods,$turn_integral,ReleaseEnum::INTEGRAL);
+                        Common::SetGoods($ret_integral,$turn_integral,ReleaseEnum::INTEGRAL,1);
                     }
                 }
             }

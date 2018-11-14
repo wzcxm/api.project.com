@@ -34,5 +34,4 @@ class Friend extends Model
      */
     public $timestamps = false;
 
-
 }
