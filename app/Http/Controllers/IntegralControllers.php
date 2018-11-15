@@ -150,37 +150,18 @@ class IntegralControllers extends Controller
                 $retJson->message = '商品id不能为空';
                 return $retJson->toJson();
             }
-            $integral = IntegralGoods::find($id);
+            $integral = DB::table('v_integral_info')->where('id',$id)->first();;
             if(empty($integral)){
                 $retJson->code = ErrorCode::DATA_LOGIN;
                 $retJson->message = '数据不存在';
                 return $retJson->toJson();
             }
-            $ret_integral = [
-                'id'=>$integral->id, //商品id
-                'uid'=>$integral->uid, //发布人uid
-                'nickname'=>$integral->userInfo->nickname, //发布人昵称
-                'head_url'=>$integral->userInfo->head_url, //发布人头像
-                'create_time'=>$integral->create_time, //发布时间
-                'type'=>$integral->type, //类型：原创/转卖
-                'turnprice'=>$integral->turnprice, //转卖积分
-                'turn_num' => $integral->turnnum + $integral->turnnum_add, //转卖次数
-                'like_num' => $integral->likenum +  $integral->likenum_add,//点赞次数
-                'discuss_num' => $integral->discussnum + $integral->discussnum_add, //评论次数
-            ];
-            //原创商品
-            if($integral->type == DefaultEnum::NO){
-                Common::SetGoods($ret_integral,$integral,ReleaseEnum::INTEGRAL,1);
-            }else{   //转卖商品
-                if(!empty($integral->first_id)){
-                    $turn_integral = $integral->firstIntegral;
-                    if(!empty($turn_integral)){
-                        Common::SetGoods($ret_integral,$turn_integral,ReleaseEnum::INTEGRAL,1);
-                    }
-                }
+            //添加文件地址
+            if(!empty($integral->file_id)){
+                $integral->files = Common::GetFiles(ReleaseEnum::INTEGRAL,$integral->file_id);
             }
             //商品信息
-            $retJson->data['Integral'] = $ret_integral;
+            $retJson->data['Integral'] = $integral;
             //当前查看用户是否点赞
             $uid = auth()->id();
             $retJson->data['IsLike'] =Common::IsLike(ReleaseEnum::INTEGRAL,$integral->id,$uid);
@@ -216,7 +197,7 @@ class IntegralControllers extends Controller
             }
             //获取文件地址
             $items = json_decode(json_encode($data_list),true);
-            //添加文件访问地址
+            //添加文件地址
             Common::SetFileUrl($items,ReleaseEnum::INTEGRAL);
             $retJson->data['IntegralList'] = $items;
             return $retJson->toJson();

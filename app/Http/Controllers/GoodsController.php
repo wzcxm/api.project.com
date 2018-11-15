@@ -157,37 +157,18 @@ class GoodsController extends Controller
                 $retJson->message = '商品id不能为空';
                 return $retJson->toJson();
             }
-            $goods = Goods::find($id);
+            $goods = DB::table('v_goods_info')->where('id',$id)->first();
             if(empty($goods)){
                 $retJson->code = ErrorCode::DATA_LOGIN;
                 $retJson->message = '数据不存在';
                 return $retJson->toJson();
             }
-            $ret_goods = [
-                'id'=>$goods->id, //商品id
-                'uid'=>$goods->uid, //发布人uid
-                'nickname'=>$goods->userInfo->nickname, //发布人昵称
-                'head_url'=>$goods->userInfo->head_url, //发布人头像
-                'create_time'=>$goods->create_time, //发布时间
-                'type'=>$goods->type, //类型：原始/转卖
-                'turnprice' => $goods->turnprice,//转卖价格
-                'turn_num' => $goods->turnnum + $goods->turnnum_add, //转卖次数
-                'like_num' => $goods->likenum +  $goods->likenum_add,//点赞次数
-                'discuss_num' => $goods->discussnum + $goods->discussnum_add, //评论次数
-                ];
-            //原创商品
-            if($goods->type == DefaultEnum::NO){
-                Common::SetGoods($ret_goods,$goods,ReleaseEnum::GOODS,0);
-            }else{   //转卖商品
-                if(!empty($goods->first_id)){
-                    $turn_goods = $goods->firstGoods;
-                    if(!empty($turn_goods)){
-                        Common::SetGoods($ret_goods,$turn_goods,ReleaseEnum::GOODS,0);
-                    }
-                }
+            //添加文件地址
+            if(!empty($goods->file_id)){
+                $goods->files = Common::GetFiles(ReleaseEnum::GOODS,$goods->file_id);
             }
             //商品信息
-            $retJson->data['Goods'] = $ret_goods;
+            $retJson->data['Goods'] = $goods;
             //当前查看用户是否点赞
             $uid = auth()->id();
             $retJson->data['IsLike'] =Common::IsLike(ReleaseEnum::GOODS,$goods->id,$uid);

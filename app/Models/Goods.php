@@ -42,26 +42,5 @@ class Goods extends Model
         'visible_uids' => 'array',
     ];
 
-    /**
-     * 获取原创商品
-     */
-    public function firstGoods(){
-        return $this->hasOne('App\Models\Goods','id','first_id');
-    }
 
-    /**
-     * 发布人信息
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
-    public function userInfo(){
-        return $this->hasOne('App\Models\Users','uid','uid');
-    }
-
-    /**
-     * label名称
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
-    public function labelInfo(){
-        return $this->hasOne('App\Models\Label','id','label');
-    }
 }

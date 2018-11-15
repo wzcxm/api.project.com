@@ -143,32 +143,29 @@ class DynamicController extends Controller
                 $retJson->message = 'id不能为空';
                 return $retJson->toJson();
             }
-            $dynamic = Dynamic::find($id);
+            $dynamic =DB::table('v_dynamic_info')->where('id',$id)->first();
             if(empty($dynamic)){
                 $retJson->code = ErrorCode::DATA_LOGIN;
                 $retJson->message = '动态数据不存在';
                 return $retJson->toJson();
             }
-            $retDynamic = [
-                'type'=>$dynamic->type, //发布类型：原创/转发
-                'create_time'=>$dynamic->create_time, //发布时间
-            ];
-            self::SetRetDynamic($retDynamic,$dynamic);
             if($dynamic->type == DefaultEnum::NO){
-                $retDynamic['label_name'] = $dynamic->labelInfo->name; //标签
-                $retDynamic['address'] = $dynamic->address; //地址
+                //如有文件，加入发布文件
+                if($dynamic->isannex == DefaultEnum::YES){
+                    $dynamic->files = Common::GetFiles(ReleaseEnum::DYNAMIC,$id);
+                }
             }else{
-                $turn = $dynamic->frontDynamic;
+                $turn = DB::table('v_dynamic_info')->where('id',$dynamic->front_id)->first();
                 if(!empty($turn)){
-                    $retDynamic['turn'] = [
-                        'label_name' => $turn->labelInfo->name, //标签
-                        'address'=>$turn->address,
-                    ];
-                    self::SetRetDynamic($retDynamic['turn'],$turn);
+                    //如有文件，加入发布文件
+                    if($turn->isannex == DefaultEnum::YES){
+                        $turn->files = Common::GetFiles(ReleaseEnum::DYNAMIC,$turn->id);
+                    }
+                    $dynamic->turn = $turn;
                 }
             }
             //动态信息/转发动态信息
-            $retJson->data['Dynamic'] = $retDynamic;
+            $retJson->data['Dynamic'] = $dynamic;
             //当前查看用户是否点赞
             $uid = auth()->id();
             $retJson->data['IsLike'] =Common::IsLike(ReleaseEnum::DYNAMIC,$dynamic->id,$uid);
@@ -181,23 +178,6 @@ class DynamicController extends Controller
             return $retJson->toJson();
         }
     }
-
-    //设置返回数据
-    private function SetRetDynamic(&$retArr,$data){
-        $retArr['id'] = $data->id;
-        $retArr['uid'] = $data->uid;
-        $retArr['nickname']=$data->userInfo->nickname; //发布人昵称
-        $retArr['head_url']=$data->userInfo->head_url;//发布人头像
-        $retArr['content'] =$data->content; //发布类容
-        $retArr['turn_num'] = $data->turnnum + $data->turnnum_add; //转发次数
-        $retArr['like_num'] = $data->likenum +  $data->likenum_add;//点赞次数
-        $retArr['discuss_num'] = $data->discussnum + $data->discussnum_add; //评论次数
-        //如有文件，加入发布文件
-        if($data->isannex == DefaultEnum::YES){
-            $retArr['files']= Common::GetFiles(ReleaseEnum::DYNAMIC,$data->id);
-        }
-    }
-
 
     /**
      * 我的普通动态列表

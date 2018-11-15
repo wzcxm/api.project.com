@@ -221,42 +221,6 @@ class Common
         }
     }
 
-
-    /**
-     * 设置商品返回值
-     * @param $ret_arr
-     * @param $data
-     * @param $type
-     * @param $order_type
-     */
-    public static function SetGoods(&$ret_arr,$data,$type,$order_type){
-        $ret_arr['title'] = $data->title; //商品名称
-        $ret_arr['remark'] = $data->remark; //描述
-        $ret_arr['number'] = $data->number; //库存数量
-        $ret_arr['label_name'] = $data->labelInfo->name; //标签
-        $ret_arr['address'] = $data->address; //地址
-        $ret_arr['price'] = $data->price; //单价
-        if(!empty($data->firstprice)){
-            $ret_arr['firstprice'] = $data->firstprice; //原价
-        }
-        $ret_arr['fare'] = $data->fare;  //运费
-        $ret_arr['limit'] = $data->limit; //转卖上限
-        $ret_arr['sell_num'] = self::GetSellNum($data->id,$order_type);  //销量
-        if($data->isannex == DefaultEnum::YES){
-            $ret_arr['files'] = self::GetFiles($type,$data->id); //图片地址
-        }
-    }
-
-    /**
-     * 获取商品的销售量
-     * @param $orderId
-     * @param $type
-     * @return mixed
-     */
-    private static function GetSellNum($orderId,$type){
-        return  Order::where('order_type',$type)->where('goods_id',$orderId)->count();
-    }
-
     /**
      * 去除没有查看权限的圈子数据
      * @param $items
