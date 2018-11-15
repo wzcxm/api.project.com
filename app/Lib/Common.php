@@ -173,6 +173,8 @@ class Common
         return null;
     }
 
+
+
     /**
      * 获取业务的评论信息列表
      * @param $release_type
@@ -253,6 +255,67 @@ class Common
      */
     private static function GetSellNum($orderId,$type){
         return  Order::where('order_type',$type)->where('goods_id',$orderId)->count();
+    }
+
+    /**
+     * 去除没有查看权限的圈子数据
+     * @param $items
+     * @param $uid
+     */
+    public static function FilterRelease(&$items,$uid){
+        //去除没有权限的动态
+        $items =  array_filter($items,function ($item) use($uid){
+            if($item['type']==DefaultEnum::NO){
+                if($item['access']==AccessEnum::PUBLIC){
+                    return $item;
+                }elseif($item['access']==AccessEnum::PRIVATE){
+                    if($item['uid'] == $uid){
+                        return $item;
+                    }
+                }elseif($item['access']==AccessEnum::PARTIAL){
+                    $arr = json_decode($item['visible_uids'],true);
+                    if(in_array($uid,$arr) || $item['uid'] == $uid){
+                        return $item;
+                    }
+                }
+            }else{
+                return $item;
+            }
+        });
+    }
+
+    /**
+     * 给圈子数据添加文件访问地址
+     * @param $items
+     * @param $release_type
+     */
+    public static function SetFileUrl(&$items,$release_type){
+        //获取文件地址
+        $files_id_arr = array_map(function ($item){
+            if($item['type'] == DefaultEnum::NO && $item['isannex'] == DefaultEnum::YES){
+                return $item['id'];
+            }else if($item['type'] == DefaultEnum::YES && $item['init_annex'] == DefaultEnum::YES){
+                return $item['init_id'];
+            }
+        },$items);
+        $id_arr = array_filter(array_unique($files_id_arr));
+        $files =  Files::where('release_type',$release_type)
+            ->whereIn('release_id',$id_arr)
+            ->get(['release_id','fileurl']);
+        $files = json_decode($files,true);
+        //添加文件访问地址
+        foreach ($items as &$data){
+            if($data['type'] == DefaultEnum::NO && $data['isannex'] == DefaultEnum::YES){
+                $id =  $data['id'];
+            }else if($data['type'] == DefaultEnum::YES && $data['init_annex'] == DefaultEnum::YES){
+                $id =  $data['init_id'];
+            }
+            if(!empty($id)){
+                $data['files'] = array_column(array_filter($files,function ($item) use($id){
+                    return $item['release_id'] == $id;
+                }),'fileurl');
+            }
+        }
     }
 
 }

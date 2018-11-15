@@ -169,14 +169,14 @@ class GoodsController extends Controller
                 'nickname'=>$goods->userInfo->nickname, //发布人昵称
                 'head_url'=>$goods->userInfo->head_url, //发布人头像
                 'create_time'=>$goods->create_time, //发布时间
-                'buytype'=>$goods->buytype, //类型：原始/转卖
+                'type'=>$goods->type, //类型：原始/转卖
                 'turnprice' => $goods->turnprice,//转卖价格
                 'turn_num' => $goods->turnnum + $goods->turnnum_add, //转卖次数
                 'like_num' => $goods->likenum +  $goods->likenum_add,//点赞次数
                 'discuss_num' => $goods->discussnum + $goods->discussnum_add, //评论次数
                 ];
             //原创商品
-            if($goods->buytype == DefaultEnum::NO){
+            if($goods->type == DefaultEnum::NO){
                 Common::SetGoods($ret_goods,$goods,ReleaseEnum::GOODS,0);
             }else{   //转卖商品
                 if(!empty($goods->first_id)){
@@ -209,52 +209,22 @@ class GoodsController extends Controller
     public function GetGoodsList(Request $request){
         $retJson = new ReturnData();
         try{
-            $uid = auth()->id();
-            $find_uid = $request->input('find_uid','');
             //$find_uid不为空时，表示查询该用户的动态列表
-            if(!empty($find_uid)){
-                $uid = $find_uid;
-            }
+            $uid = $request->input('find_uid',auth()->id());
+
             //获取我的普通动态数据，每次显示10条
             $data_list = DB::table('v_goods_list')->where('uid',$uid)
                 ->orderBy('id','desc')->simplePaginate(10);
-
+            $data_list = $data_list->items();
             if(count($data_list)<=0){
                 $retJson->message = "最后一页了，没有数据了";
                 return $retJson->toJson();
             }
             //获取文件地址
-            $data_list = $data_list->items();
             $items = json_decode(json_encode($data_list),true);
-            //获取动态id
-            $files_id_arr = array_map(function ($item){
-                if($item['type'] == DefaultEnum::NO && $item['isannex'] == DefaultEnum::YES){
-                    return $item['id'];
-                }else if($item['type'] == DefaultEnum::YES && $item['init_annex'] == DefaultEnum::YES){
-                    return $item['init_id'];
-                }
-            },$items);
-            //去除null和重复的值
-            $files_id_arr = array_filter(array_unique($files_id_arr));
-            //获取所有的文件地址
-            $files = Files::where('release_type',ReleaseEnum::GOODS)
-                ->whereIn('release_id',$files_id_arr)
-                ->get(['release_id','fileurl']);
-            $files = json_decode($files,true);
-            foreach ($data_list as $data){
-                //添加文件
-                if($data->type == DefaultEnum::NO && $data->isannex == DefaultEnum::YES){
-                    $id =  $data->id;
-                }else if($data->type == DefaultEnum::YES && $data->init_annex == DefaultEnum::YES){
-                    $id =  $data->init_id;
-                }
-                if(!empty($id)){
-                    $data->files = array_column(array_filter($files,function ($item) use($id){
-                        return $item['release_id'] == $id;
-                    }),'fileurl');
-                }
-            }
-            $retJson->data['GoodsList'] = $data_list;
+            //添加文件访问地址
+            Common::SetFileUrl($items,ReleaseEnum::GOODS);
+            $retJson->data['GoodsList'] = $items;
             return $retJson->toJson();
         }catch (\Exception $e){
             $retJson->code = ErrorCode::EXCEPTION;
@@ -285,54 +255,11 @@ class GoodsController extends Controller
             }
             //获取文件地址
             $items = json_decode(json_encode($data_list),true);
-            //去除没有查看权限的商品
-            $items =  array_filter($items,function ($item) use($uid){
-                if($item['type']==DefaultEnum::NO){
-                    if($item['access']==AccessEnum::PUBLIC){
-                        return $item;
-                    }elseif($item['access']==AccessEnum::PRIVATE){
-                        if($item['uid'] == $uid){
-                            return $item;
-                        }
-                    }elseif($item['access']==AccessEnum::PARTIAL){
-                        $arr = json_decode($item['visible_uids'],true);
-                        if(in_array($uid,$arr) || $item['uid'] == $uid){
-                            return $item;
-                        }
-                    }
-                }else{
-                    return $item;
-                }
-            });
-            //获取动态id
-            $files_id_arr = array_map(function ($item){
-                if($item['type'] == DefaultEnum::NO && $item['isannex'] == DefaultEnum::YES){
-                    return $item['id'];
-                }else if($item['type'] == DefaultEnum::YES && $item['init_annex'] == DefaultEnum::YES){
-                    return $item['init_id'];
-                }
-            },$items);
-            //去除null和重复的值
-            $files_id_arr = array_filter(array_unique($files_id_arr));
-            //获取所有的文件地址
-            $files = Files::where('release_type',ReleaseEnum::GOODS)
-                ->whereIn('release_id',$files_id_arr)
-                ->get(['release_id','fileurl']);
-            $files = json_decode($files,true);
-            foreach ($data_list as $data){
-                //添加文件
-                if($data->type == DefaultEnum::NO && $data->isannex == DefaultEnum::YES){
-                    $id =  $data->id;
-                }else if($data->type == DefaultEnum::YES && $data->init_annex == DefaultEnum::YES){
-                    $id =  $data->init_id;
-                }
-                if(!empty($id)){
-                    $data->files = array_column(array_filter($files,function ($item) use($id){
-                        return $item['release_id'] == $id;
-                    }),'fileurl');
-                }
-            }
-            $retJson->data['CircleGoods'] = $data_list;
+            //去除没有权限的商品
+            Common::FilterRelease($items,$uid);
+            //添加文件访问地址
+            Common::SetFileUrl($items,ReleaseEnum::GOODS);
+            $retJson->data['CircleGoods'] = $items;
             return $retJson->toJson();
 
         }catch (\Exception $e){

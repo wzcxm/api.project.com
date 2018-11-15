@@ -159,17 +159,17 @@ class IntegralControllers extends Controller
             $ret_integral = [
                 'id'=>$integral->id, //商品id
                 'uid'=>$integral->uid, //发布人uid
-                'nickname'=>$integral->userInfo->nickne, //发布人昵称
+                'nickname'=>$integral->userInfo->nickname, //发布人昵称
                 'head_url'=>$integral->userInfo->head_url, //发布人头像
                 'create_time'=>$integral->create_time, //发布时间
-                'buytype'=>$integral->buytype, //类型：原创/转卖
+                'type'=>$integral->type, //类型：原创/转卖
                 'turnprice'=>$integral->turnprice, //转卖积分
-                'turn_num' => $integral->turn_num, //转卖次数
-                'like_num' => $integral->like_num,//点赞次数
-                'discuss_num' => $integral->discuss_num, //评论次数
+                'turn_num' => $integral->turnnum + $integral->turnnum_add, //转卖次数
+                'like_num' => $integral->likenum +  $integral->likenum_add,//点赞次数
+                'discuss_num' => $integral->discussnum + $integral->discussnum_add, //评论次数
             ];
             //原创商品
-            if($integral->buytype == DefaultEnum::NO){
+            if($integral->type == DefaultEnum::NO){
                 Common::SetGoods($ret_integral,$integral,ReleaseEnum::INTEGRAL,1);
             }else{   //转卖商品
                 if(!empty($integral->first_id)){
@@ -194,4 +194,71 @@ class IntegralControllers extends Controller
         }
     }
 
+
+    /**
+     * 获取积分商品列表
+     * @param Request $request
+     * @return string
+     */
+    public function GetIntegralList(Request $request){
+        $retJson = new ReturnData();
+        try{
+            //$find_uid不为空时，表示查询该用户的动态列表
+            $uid = $request->input('find_uid',auth()->id());
+
+            //获取我的普通动态数据，每次显示10条
+            $data_list = DB::table('v_integral_list')->where('uid',$uid)
+                ->orderBy('id','desc')->simplePaginate(10);
+            $data_list = $data_list->items();
+            if(count($data_list)<=0){
+                $retJson->message = "最后一页了，没有数据了";
+                return $retJson->toJson();
+            }
+            //获取文件地址
+            $items = json_decode(json_encode($data_list),true);
+            //添加文件访问地址
+            Common::SetFileUrl($items,ReleaseEnum::INTEGRAL);
+            $retJson->data['IntegralList'] = $items;
+            return $retJson->toJson();
+        }catch (\Exception $e){
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
+        }
+    }
+
+
+    /**
+     * 获取朋友圈积分商品列表
+     * @param Request $request
+     * @return string
+     */
+    public function GetCircleIntegral(Request $request){
+        $retJson =  new ReturnData();
+        try{
+            $uid = auth()->id();
+            //获取所有好友id和自己的id
+            $circle_ids = Common::GetFriendUid($uid);
+            //获取圈子普通动态数据，每次显示10条
+            $data_list = DB::table('v_integral_list')->whereIn('uid',$circle_ids)
+                ->orderBy('id','desc')->simplePaginate(10);
+            $data_list = $data_list->items();
+            if(count($data_list)<= 0){
+                $retJson->message = "最后一页，没有数据了";
+                return $retJson->toJson();
+            }
+            //获取文件地址
+            $items = json_decode(json_encode($data_list),true);
+            //去除没有权限的商品
+            Common::FilterRelease($items,$uid);
+            //添加文件访问地址
+            Common::SetFileUrl($items,ReleaseEnum::INTEGRAL);
+            $retJson->data['CircleIntegral'] = $items;
+            return $retJson->toJson();
+        }catch (\Exception $e){
+            $retJson->code = ErrorCode::EXCEPTION;
+            $retJson->message = $e->getMessage();
+            return $retJson->toJson();
+        }
+    }
 }

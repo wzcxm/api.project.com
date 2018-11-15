@@ -119,4 +119,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/TurnIntegral','IntegralControllers@TurnIntegral');
     //获取商品详情
     $router->get('/GetIntegral','IntegralControllers@GetIntegral');
+    //获取商品列表
+    $router->get('/GetIntegralList','IntegralControllers@GetIntegralList');
+    //获取圈子商品列表
+    $router->get('/GetCircleIntegral','IntegralControllers@GetCircleIntegral');
+
 });
