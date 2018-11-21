@@ -10,8 +10,10 @@
 namespace App\Http\Controllers;
 
 
+use App\Lib\DefaultEnum;
 use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
+use App\Lib\DataComm;
 use App\Models\Apply;
 use App\Models\Friend;
 use App\Models\Users;
@@ -20,25 +22,21 @@ use Illuminate\Support\Facades\DB;
 
 class FriendController extends Controller
 {
+    use ReturnData;
     /**
      * 获取用户好友
      * @param Request $request
      * @return string
      */
     public function GetFriends(Request $request){
-        $retJson = new ReturnData();
         try{
-            $uid =  auth()->id();//$request->input('uid','');
-            $friends = DB::table('v_friends')
-                ->where('uid',$uid)
-                ->select('friend_uid','nickname','head_url')
-                ->get();
-            $retJson->data['Friends'] = $friends;
-            return $retJson->toJson();
+            $uid =  auth()->id();
+            $this->data['Friends'] = DataComm::GetFriends($uid);
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -48,13 +46,12 @@ class FriendController extends Controller
      * @return string
      */
     public function  FindFriend(Request $request){
-        $retJson = new ReturnData();
         try{
             $number =  $request->input('value','');
             if(empty($number)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'value不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'value不能为空';
+                return $this->toJson();
             }
             //根据uid/电话/邮箱/昵称查找好友
             $users = Users::where('uid',$number)
@@ -62,12 +59,12 @@ class FriendController extends Controller
                 ->orWhere('email',$number)
                 ->select('uid','nickname','head_url')
                 ->get();
-            $retJson->data['Users'] = $users;
-            return $retJson->toJson();
+            $this->data['Users'] = $users;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -77,23 +74,22 @@ class FriendController extends Controller
      * @return string
      */
     public function AddFriend(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid = auth()->id();
             $friend_uid =  $request->input('friend_uid','');
             $remark = $request->input('remark','');
             if(empty($friend_uid)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'friend_uid不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'friend_uid不能为空';
+                return $this->toJson();
             }
             //保存添加好友请求
             Apply::insert(['ask_uid'=>$uid,'reply_uid'=>$friend_uid,'remark'=>$remark]);
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -103,19 +99,14 @@ class FriendController extends Controller
      * @return string
      */
     public function GetApply(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid = auth()->id();
-            $apply = DB::table('v_applys')
-                ->where('reply_uid',$uid)
-                ->select('id','ask_uid','nickname','head_url','remark','status')
-                ->get();
-            $retJson->data['Applys'] = $apply;
-            return $retJson->toJson();
+            $this->data['Applys'] = DataComm::GetApplyList($uid);
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -125,21 +116,20 @@ class FriendController extends Controller
      * @return string
      */
     public function IsAgree(Request $request){
-        $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
             $type = $request->input('type','');
             if(empty($id) || empty($type)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id或status不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id或status不能为空';
+                return $this->toJson();
             }
             $apply = Apply::find($id);
             $apply->status = $type;
             DB::transaction(function () use($apply){
                 $apply->save();
                 //同意加好友，相互添加用户好友列表
-                if($apply->status == 1){
+                if($apply->status == DefaultEnum::YES){
                     $friends = [
                         ['uid'=>$apply->ask_uid,'friend_uid'=>$apply->reply_uid],
                         ['uid'=>$apply->reply_uid,'friend_uid'=>$apply->ask_uid]
@@ -147,11 +137,11 @@ class FriendController extends Controller
                     Friend::insert($friends);
                 }
             });
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -161,21 +151,20 @@ class FriendController extends Controller
      * @return string
      */
     public function  GetFriendInfo(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid = $request->input('uid','');
             if(empty($uid)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'uid不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'uid不能为空';
+                return $this->toJson();
             }
             $user =  Users::find($uid,['uid','nickname','head_url','telephone','level','integral','email','age','address']);
-            $retJson->data['FriendInfo'] = $user;
-            return $retJson->toJson();
+            $this->data['FriendInfo'] = $user;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
 
     }

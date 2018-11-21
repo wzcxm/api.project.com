@@ -77,6 +77,10 @@ abstract  class ReleaseEnum{
      * 评论
      */
     const DISCUSS = 5;
+    /**
+     * 悬赏任务订单
+     */
+    const REWARD_ORDER = 6;
 }
 
 /**

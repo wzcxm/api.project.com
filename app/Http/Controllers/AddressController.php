@@ -18,14 +18,13 @@ use Illuminate\Support\Facades\DB;
 
 class AddressController extends Controller
 {
-
+    use ReturnData;
     /**
      * 编辑物流地址
      * @param Request $request
      * @return string
      */
     public function EditAddress(Request $request){
-        $retJson = new ReturnData();
         try{
             $id =  $request->input('id','');
             $uid = auth()->id();
@@ -50,11 +49,11 @@ class AddressController extends Controller
                 }
                 $address_model->save();
             });
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
 
     }
@@ -66,27 +65,26 @@ class AddressController extends Controller
      * @return string
      */
     public function DelAddress(Request $request){
-        $retJson = new ReturnData();
         try{
             $id =  $request->input('id','');
             if(empty($id)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id不能为空';
+                return $this->toJson();
             }
             $address_model = Address::find($id); //修改
             if(empty($address_model)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = '数据不存在';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '数据不存在';
+                return $this->toJson();
             }
             $address_model->isdelete = 1;
             $address_model->save();
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -97,21 +95,20 @@ class AddressController extends Controller
      * @return string
      */
     public function GetAddress(Request $request){
-        $retJson = new ReturnData();
         try{
             $id =  $request->input('id','');
             if(empty($id)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id不能为空';
+                return $this->toJson();
             }
             $address_model = Address::where('id',$id)->where('isdelete',0)->first();
-            $retJson->data = $address_model;
-            return $retJson->toJson();
+            $this->data = $address_model;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -121,16 +118,15 @@ class AddressController extends Controller
      * @return string
      */
     public function GetAddressList(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid = auth()->id();
             $models = Address::where('uid',$uid)->where('isdelete',0)->get();
-            $retJson->data = $models;
-            return $retJson->toJson();
+            $this->data = $models;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 }

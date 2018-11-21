@@ -13,7 +13,7 @@ namespace App\Lib;
  * Class ReturnData
  * @package App\Lib
  */
-class ReturnData
+trait  ReturnData
 {
     public $code = 0;
     public $message='success';

@@ -9,8 +9,7 @@
 
 namespace App\Http\Controllers;
 
-
-use App\Lib\Common;
+use App\Lib\DataComm;
 use App\Lib\ErrorCode;
 use App\Lib\ReleaseEnum;
 use App\Lib\ReturnData;
@@ -22,13 +21,13 @@ use Illuminate\Support\Facades\DB;
 
 class CommentController extends Controller
 {
+    use ReturnData;
     /**
      * 添加点赞记录
      * @param Request $request
      * @return string
      */
     public function  Like(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();
             $release_type = $request->input('pro_type','');
@@ -36,8 +35,8 @@ class CommentController extends Controller
             $issue_uid = $request->input('issue_uid',0);
             $source = $request->input('source',0);
             if(empty($release_type) || empty($release_id) || empty($issue_uid)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'pro_type、pro_id、issue_uid不能为空';
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'pro_type、pro_id、issue_uid不能为空';
             }else{
                 DB::transaction(function () use ($release_type,$release_id,$uid,$source,$issue_uid){
                     $like = Like::where([['release_type',$release_type],['release_id',$release_id],['uid',$uid]])->first();
@@ -51,20 +50,20 @@ class CommentController extends Controller
                                 'issue_uid'=>$issue_uid]
                         );
                         //该条业务增加一次点赞数量
-                        Common::Increase($release_type,$release_id,'likenum');
+                        DataComm::Increase($release_type,$release_id,'likenum');
                     }else{ //如果已经点赞，则表示取消点赞，则删除点赞记录
                         //删除点赞记录
                         $like->delete();
                         //该条业务减少一次点赞数量
-                        Common::Decrement($release_type,$release_id,'likenum');
+                        DataComm::Decrement($release_type,$release_id,'likenum');
                     }
                 });
             }
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
         }
-        return $retJson->toJson();
+        return $this->toJson();
     }
 
     /**
@@ -73,7 +72,6 @@ class CommentController extends Controller
      * @return string
      */
     public function Comment(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();
             $release_type = $request->input('pro_type','');
@@ -84,8 +82,8 @@ class CommentController extends Controller
             $files = $request->input('files','');
             $issue_uid = $request->input('issue_uid',0);
             if(empty($release_type) ||  empty($comment) || empty($release_id) || empty($issue_uid)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'comment、pro_type、pro_id、issue_uid不能为空';
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'comment、pro_type、pro_id、issue_uid不能为空';
             }else{
                 //生成评论记录
                 $comment =  new Comment();
@@ -105,7 +103,7 @@ class CommentController extends Controller
                         Files::insert(['release_type'=>ReleaseEnum::DISCUSS,'release_id'=>$comment->id,'fileurl'=>$files]);
                     }
                     //该条业务增加一次评论数量
-                    Common::Increase($comment->release_type,$comment->release_id,'discussnum');
+                    DataComm::Increase($comment->release_type,$comment->release_id,'discussnum');
                     //如果是回复的评论，回复的评论的评论次数加1
                     if(!empty($comment->reply_id)){
                         Comment::find($comment->reply_id)->increment('discussnum');
@@ -113,10 +111,10 @@ class CommentController extends Controller
                 });
             }
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
         }
-        return $retJson->toJson();
+        return $this->toJson();
     }
 
     /**
@@ -125,17 +123,16 @@ class CommentController extends Controller
      * @return string
      */
     public function DelComment(Request $request){
-        $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
             if(empty($id)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id不能为空';
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id不能为空';
             }
             DB::transaction(function ()use($id){
                 $comment = Comment::find($id);
                 //该条业务减少一次评论数量
-                Common::Decrement($comment->release_type,$comment->release_id,'discussnum');
+                DataComm::Decrement($comment->release_type,$comment->release_id,'discussnum');
                 //如果是回复的评论，回复的评论的评论次数减1
                 if(!empty($comment->reply_id)){
                     Comment::find($comment->reply_id)->decrement('discussnum');
@@ -143,10 +140,10 @@ class CommentController extends Controller
                 $comment->delete();
             });
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
         }
-        return $retJson->toJson();
+        return $this->toJson();
     }
 
 }

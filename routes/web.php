@@ -123,5 +123,22 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetIntegralList','IntegralControllers@GetIntegralList');
     //获取圈子商品列表
     $router->get('/GetCircleIntegral','IntegralControllers@GetCircleIntegral');
+    //我发布的商品（付费商品/积分商品）
+    $router->get('/GetMyPostedList','IntegralControllers@GetMyPostedList');
+    //我代理的商品（付费商品/积分商品）
+    $router->get('/GetMyProxyList','IntegralControllers@GetMyProxyList');
+    /**
+     * 悬赏任务
+     */
+    //发布/修改悬赏任务
+    $router->post('/EditReward','RewardController@EditReward');
+    //转发悬赏任务
+    $router->post('/TurnReward','RewardController@TurnReward');
+    //获取悬赏任务详情
+    $router->get('/GetReward','RewardController@GetReward');
+    //获取悬赏任务列表
+    $router->get('/GetRewardList','RewardController@GetRewardList');
+    //获取圈子悬赏任务列表
+    $router->get('/GetCircleReward','RewardController@GetCircleReward');
 
 });

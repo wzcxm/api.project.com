@@ -15,21 +15,21 @@ use Illuminate\Http\Request;
 
 class LabelController extends Controller
 {
+    use ReturnData;
     /**
      * 获取系统标签
      * @param Request $request
      * @return string
      */
     public function GetSysLabel(Request $request){
-        $retJson = new ReturnData();
         try{
             $label = Label::where('type',1)->where('isdelete',0)->get(['id','name']);
-            $retJson->data['Label'] = $label;
-            return $retJson->toJson();
+            $this->data['Label'] = $label;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -39,16 +39,15 @@ class LabelController extends Controller
      * @return string
      */
     public function GetUserLabel(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();;
             $label = Label::where('uid',$uid)->where('isdelete',0)->get(['id','name']);
-            $retJson->data['Label'] = $label;
-            return $retJson->toJson();
+            $this->data['Label'] = $label;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -58,7 +57,6 @@ class LabelController extends Controller
      * @return string
      */
     public function EditLabel(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();//$request->input('uid','');
             $id = $request->input('id','');
@@ -74,12 +72,12 @@ class LabelController extends Controller
             $label->uid = $uid;
             $label->save();
             //返回成功
-            $retJson->data['Label'] = $label;
-            return $retJson->toJson();
+            $this->data['Label'] = $label;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -89,16 +87,15 @@ class LabelController extends Controller
      * @return string
      */
     public function DeleteLabel(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();//$request->input('uid','');
             $id = $request->input('id','');
             Label::where([['id',$id],['uid',$uid]])->update(['isdelete'=>1]);
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 

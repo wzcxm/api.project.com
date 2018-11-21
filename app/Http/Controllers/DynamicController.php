@@ -15,23 +15,21 @@ use App\Lib\ErrorCode;
 use App\Lib\ReleaseEnum;
 use App\Lib\ReturnData;
 use App\Lib\AccessEnum;
+use App\Lib\DataComm;
 use App\Models\Dynamic;
-use App\Models\Files;
-use App\Models\Like;
 use App\Models\Turn;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DynamicController extends Controller
 {
-
+    use ReturnData;
     /**
      * 发布动态
      * @param Request $request
      * @return string
      */
     public function EditDynamic(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();
             $id = $request->input('id','');
@@ -72,14 +70,14 @@ class DynamicController extends Controller
                 //如有文件，保存文件记录
                 if(!empty($files)){
                     //保存文件
-                    Common::SaveFiles(ReleaseEnum::DYNAMIC,$dynamic->id,$files);
+                    DataComm::SaveFiles(ReleaseEnum::DYNAMIC,$dynamic->id,$files);
                 }
             });
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -89,15 +87,14 @@ class DynamicController extends Controller
      * @return string
      */
     public function TurnDynamic(Request $request){
-        $retJson = new ReturnData();
         try{
             $uid =  auth()->id();
             $front_id = $request->input('turn_id',0);
             $source = $request->input('source',0);
             if(empty($front_id)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = '转发id不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '转发id不能为空';
+                return $this->toJson();
             }
             //生成转发动态model
             $dynamic =  new Dynamic();
@@ -118,14 +115,14 @@ class DynamicController extends Controller
                     'issue_uid'=>$turn->uid,
                     'source'=>$source]);
                 //该条动态增加一次转发
-                Common::Increase(ReleaseEnum::DYNAMIC,$dynamic->front_id,'turnnum');
+                DataComm::Increase(ReleaseEnum::DYNAMIC,$dynamic->front_id,'turnnum');
 
             });
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -135,47 +132,46 @@ class DynamicController extends Controller
      * @return string
      */
     public function GetDynamic(Request $request){
-        $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
             if(empty($id)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id不能为空';
+                return $this->toJson();
             }
-            $dynamic =DB::table('v_dynamic_info')->where('id',$id)->first();
+            $dynamic = DataComm::GetDynamicInfo($id);
             if(empty($dynamic)){
-                $retJson->code = ErrorCode::DATA_LOGIN;
-                $retJson->message = '动态数据不存在';
-                return $retJson->toJson();
+                $this->code = ErrorCode::DATA_LOGIN;
+                $this->message = '动态数据不存在';
+                return $this->toJson();
             }
             if($dynamic->type == DefaultEnum::NO){
-                //如有文件，加入发布文件
+                //如有文件，加入文件地址
                 if($dynamic->isannex == DefaultEnum::YES){
-                    $dynamic->files = Common::GetFiles(ReleaseEnum::DYNAMIC,$id);
+                    $dynamic->files = DataComm::GetFiles(ReleaseEnum::DYNAMIC,$id);
                 }
             }else{
-                $turn = DB::table('v_dynamic_info')->where('id',$dynamic->front_id)->first();
+                $turn = DataComm::GetDynamicInfo($dynamic->front_id);
                 if(!empty($turn)){
-                    //如有文件，加入发布文件
+                    //如有文件，加入文件地址
                     if($turn->isannex == DefaultEnum::YES){
-                        $turn->files = Common::GetFiles(ReleaseEnum::DYNAMIC,$turn->id);
+                        $turn->files = DataComm::GetFiles(ReleaseEnum::DYNAMIC,$turn->id);
                     }
                     $dynamic->turn = $turn;
                 }
             }
             //动态信息/转发动态信息
-            $retJson->data['Dynamic'] = $dynamic;
+            $this->data['Dynamic'] = $dynamic;
             //当前查看用户是否点赞
             $uid = auth()->id();
-            $retJson->data['IsLike'] =Common::IsLike(ReleaseEnum::DYNAMIC,$dynamic->id,$uid);
+            $this->data['IsLike'] =DataComm::IsLike(ReleaseEnum::DYNAMIC,$dynamic->id,$uid);
             //评论信息
-            $retJson->data['Comment'] = Common::GetComment(ReleaseEnum::DYNAMIC,$dynamic->id);
-            return $retJson->toJson();
+            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::DYNAMIC,$dynamic->id);
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -185,29 +181,27 @@ class DynamicController extends Controller
      * @return string
      */
     public function GetDynamicList(Request $request){
-        $retJson = new ReturnData();
         try{
             //$find_uid不为空时，表示查询该用户的动态列表
             $uid = $request->input('find_uid',auth()->id());
 
             //获取我的普通动态数据，每次显示10条
-            $data_list = DB::table('v_dynamic_list')->where('uid',$uid)
-                ->orderBy('id','desc')->simplePaginate(10);
+            $data_list = DataComm::GetDynamicList($uid);
             $data_list = $data_list->items();
             if(count($data_list)<=0){
-                $retJson->message = "最后一页了，没有数据了";
-                return $retJson->toJson();
+                $this->message = "最后一页了，没有数据了";
+                return $this->toJson();
             }
             //获取文件地址
             $items = json_decode(json_encode($data_list),true);
             //添加文件访问地址
-            Common::SetFileUrl($items,ReleaseEnum::DYNAMIC);
-            $retJson->data['DynamicList'] = $items;
-            return $retJson->toJson();
+            DataComm::SetFileUrl($items,ReleaseEnum::DYNAMIC);
+            $this->data['DynamicList'] = $items;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -218,31 +212,29 @@ class DynamicController extends Controller
      * @return string
      */
     public function  GetCircleDynamic(Request $request){
-        $retJson =  new ReturnData();
         try{
             $uid = auth()->id();
             //获取所有还有id和自己的id
-            $circle_ids = Common::GetFriendUid($uid);
+            $circle_ids = DataComm::GetFriendUid($uid);
             //获取圈子普通动态数据，每次显示10条
-            $data_list = DB::table('v_dynamic_list')->whereIn('uid',$circle_ids)
-                ->orderBy('id','desc')->simplePaginate(10);
+            $data_list = DataComm::GetDynamicList($circle_ids);
             $data_list = $data_list->items();
             if(count($data_list)<= 0){
-                $retJson->message = "最后一页，没有数据了";
-                return $retJson->toJson();
+                $this->message = "最后一页，没有数据了";
+                return $this->toJson();
             }
             //获取文件地址
             $items = json_decode(json_encode($data_list),true);
             //去除没有权限的动态
-            Common::FilterRelease($items,$uid);
+            DataComm::FilterRelease($items,$uid);
             //添加文件访问地址
-            Common::SetFileUrl($items,ReleaseEnum::DYNAMIC);
-            $retJson->data['CircleDynamic'] = $items;
-            return $retJson->toJson();
+            DataComm::SetFileUrl($items,ReleaseEnum::DYNAMIC);
+            $this->data['CircleDynamic'] = $items;
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -253,20 +245,19 @@ class DynamicController extends Controller
      * @return string
      */
     public function Topping(Request $request){
-        $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
             $type = $request->input('type','');
             if(empty($id) || empty($type)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id和type不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id和type不能为空';
+                return $this->toJson();
             }
             $table  =  Common::GetTable($type);
             if(empty($table)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'type值错误';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'type值错误';
+                return $this->toJson();
             }
             $model = DB::table($table)->where('id',$id)->first();
             if($model->topping == DefaultEnum::YES){
@@ -274,11 +265,11 @@ class DynamicController extends Controller
             }else{
                 DB::table($table)->where('id',$id)->update(['topping'=>1]);
             }
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
@@ -288,27 +279,26 @@ class DynamicController extends Controller
      * @return string
      */
     public function DelBusiness(Request $request){
-        $retJson = new ReturnData();
         try{
             $id = $request->input('id','');
             $type = $request->input('type','');
             if(empty($id) || empty($type)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'id和type不能为空';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id和type不能为空';
+                return $this->toJson();
             }
             $table  =  Common::GetTable($type);
             if(empty($table)){
-                $retJson->code = ErrorCode::PARAM_ERROR;
-                $retJson->message = 'type值错误';
-                return $retJson->toJson();
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'type值错误';
+                return $this->toJson();
             }
             DB::table($table)->where('id',$id)->update(['isdelete'=>1]);
-            return $retJson->toJson();
+            return $this->toJson();
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 

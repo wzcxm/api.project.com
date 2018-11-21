@@ -5,6 +5,7 @@ require_once __DIR__.'/../vendor/autoload.php';
 require_once __DIR__.'/../app/Lib/EnumClass.php';
 require_once __DIR__.'/../app/Lib/ReturnData.php';
 require_once __DIR__.'/../app/Lib/Common.php';
+require_once __DIR__.'/../app/Lib/DataComm.php';
 
 try {
     (new Dotenv\Dotenv(__DIR__.'/../'))->load();

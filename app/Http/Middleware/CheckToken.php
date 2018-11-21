@@ -11,23 +11,21 @@ namespace App\Http\Middleware;
 use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
 use Closure;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
 class CheckToken extends BaseMiddleware
 {
-
+    use ReturnData;
     public function handle($request, Closure $next)
     {
-        $retJson =  new ReturnData();
         try{
             if(auth()->check()) {
                 $user = auth()->user();
                 if($user->islogin == 1){
-                    $retJson->code = ErrorCode::NO_LOGIN;
-                    $retJson->message = '禁止登录';
-                    return $retJson->toJson();
+                    $this->code = ErrorCode::NO_LOGIN;
+                    $this->message = '禁止登录';
+                    return $this->toJson();
                 }
                 return $next($request);
             }else{
@@ -40,15 +38,15 @@ class CheckToken extends BaseMiddleware
                     return $this->setAuthenticationHeader($next($request), $token);
                 } catch (JWTException $e) {
                     Log::error($e->getMessage());
-                    $retJson->code = ErrorCode::TOKEN_ERROR;
-                    $retJson->message = 'token已失效,请重新登录';
-                    return $retJson->toJson();
+                    $this->code = ErrorCode::TOKEN_ERROR;
+                    $this->message = 'token已失效,请重新登录';
+                    return $this->toJson();
                 }
             }
         }catch (\Exception $e){
-            $retJson->code = ErrorCode::EXCEPTION;
-            $retJson->message = $e->getMessage();
-            return $retJson->toJson();
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
         }
     }
 
