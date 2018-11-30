@@ -8,10 +8,7 @@
 
 namespace App\Lib;
 
-
 use Illuminate\Support\Facades\DB;
-use PhpParser\Node\Stmt\DeclareDeclare;
-
 class DataComm
 {
     /**
@@ -139,13 +136,12 @@ class DataComm
     }
 
     /**
-     * 检查手机或者email是否被注册
-     * @param string $type
-     * @param $value
+     * 检查手机是否被注册
+     * @param $tel
      * @return bool
      */
-    public static function CheckPhoneOrEmail($type,$value){
-        $user = DB::table('pro_mall_users')->where($type,$value)->count();
+    public static function CheckPhone($tel){
+        $user = DB::table('pro_mall_users')->where('telephone',$tel)->count();
         if($user>0){
             return true;
         }else{
@@ -181,7 +177,7 @@ class DataComm
             ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
             ->where('t.reward_id',$id)
             ->where('t.uid',$uid)
-            ->select('t.uid','u.nickname','u.head_url','t.ask','t.isannex','t.status','t.create_time')
+            ->select('t.id','t.uid','u.nickname','u.head_url','t.ask','t.isannex','t.status','t.create_time')
             ->first();
     }
 
@@ -248,6 +244,33 @@ class DataComm
                 $id =  $data['id'];
             }else if($data['type'] == DefaultEnum::YES && $data['init_annex'] == DefaultEnum::YES){
                 $id =  $data['init_id'];
+            }
+            if(!empty($id)){
+                $data['files'] = array_column(array_filter($files,function ($item) use($id){
+                    return $item['release_id'] == $id;
+                }),'fileurl');
+            }
+        }
+    }
+
+    /**
+     * 给广场数据添加文件访问地址
+     * @param $items
+     * @param $release_type
+     */
+    public static function SetSquareFileUrl(&$items,$release_type){
+        //获取文件地址
+        $files_id_arr = array_map(function ($item){
+            if($item['isannex'] == DefaultEnum::YES){
+                return $item['id'];
+            }
+        },$items);
+        $id_arr = array_filter(array_unique($files_id_arr));
+        $files = self::GetFilesList($release_type,$id_arr);
+        //添加文件访问地址
+        foreach ($items as &$data){
+            if($data['isannex'] == DefaultEnum::YES){
+                $id =  $data['id'];
             }
             if(!empty($id)){
                 $data['files'] = array_column(array_filter($files,function ($item) use($id){
@@ -331,6 +354,38 @@ EOT;
             $data = $data->where('t.uid',$id);
         }
         $data = $data->orderBy('t.id','desc')
+            ->selectRaw($expression)
+            ->simplePaginate(10);
+        return $data;
+    }
+
+    /**
+     * 广场动态列表
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function GetSquareDynamicList(){
+        $expression = <<<EOT
+            t.id,
+            t.uid,
+            u.nickname,
+            u.head_url,
+            t.type,
+            t.topping,
+            t.create_time,
+            t.isannex,
+            t.turnnum+t.turnnum_add as turn_num,
+            t.likenum+t.likenum_add as like_num,
+            t.discussnum+t.discussnum_add as discuss_num,
+            t.content,
+            l.name as label_name,
+            t.address
+EOT;
+        $data = DB::table('pro_mall_dynamic as t')
+            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
+            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
+            ->where('t.isdelete',0)
+            ->where('t.issquare',1)
+            ->orderBy('t.id','desc')
             ->selectRaw($expression)
             ->simplePaginate(10);
         return $data;
@@ -427,6 +482,46 @@ EOT;
         return $data;
     }
 
+
+    /**
+     * 广场付费商品列表
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function GetSquareGoodsList(){
+        $expression = <<<EOT
+                t.id,
+                t.uid,
+                u.nickname,
+                u.head_url,
+                t.type,
+                t.create_time,
+                t.topping,
+                t.turnprice,
+                t.isannex,
+                t.turnnum+t.turnnum_add as turn_num,
+                t.likenum+t.likenum_add as like_num,
+                t.discussnum+t.discussnum_add as discuss_num,
+                t.title,
+                t.remark,
+                t.number,
+                l.name as label_name,
+                t.address,
+                t.price,
+                t.firstprice,
+                t.fare,
+                t.peak
+EOT;
+        $data = DB::table('pro_mall_goods as t')
+            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
+            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
+            ->where('t.isdelete',0)
+            ->where('t.issquare',1)
+            ->orderBy('t.id','desc')
+            ->selectRaw($expression)
+            ->simplePaginate(10);
+        return $data;
+    }
+
     /**
      * 获取一条积分商品详情
      * @param $id
@@ -511,6 +606,45 @@ EOT;
             $data = $data->where('t.uid',$id);
         }
         $data = $data->orderBy('t.id','desc')
+            ->selectRaw($expression)
+            ->simplePaginate(10);
+        return $data;
+    }
+
+
+    /**
+     * 广场积分商品列表
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function GetSquareIntegralList(){
+        $expression = <<<EOT
+                t.id,
+                t.uid,
+                u.nickname,
+                u.head_url,
+                t.type,
+                t.create_time,
+                t.topping,
+                t.turnprice,
+                t.isannex,
+                t.turnnum+t.turnnum_add as turn_num,
+                t.likenum+t.likenum_add as like_num,
+                t.discussnum+t.discussnum_add as discuss_num,
+                t.title,
+                t.remark,
+                t.number,
+                l.name as label_name,
+                t.address,
+                t.price,
+                t.fare,
+                t.peak
+EOT;
+        $data = DB::table('pro_mall_integral_goods as t')
+            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
+            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
+            ->where('t.isdelete',0)
+            ->where('t.issquare',1)
+            ->orderBy('t.id','desc')
             ->selectRaw($expression)
             ->simplePaginate(10);
         return $data;
@@ -708,4 +842,115 @@ EOT;
         return $data;
     }
 
+    /**
+     * 广场悬赏任务列表
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function GetSquareRewardList(){
+        $expression = <<<EOT
+                t.id,
+                t.uid,
+                u.nickname,
+                u.head_url,
+                t.type,
+                t.topping,
+                t.create_time,
+                t.isannex,
+                t.turnnum+t.turnnum_add as turn_num,
+                t.likenum+t.likenum_add as like_num,
+                t.discussnum+t.discussnum_add as discuss_num,
+                t.title,
+                t.remark,
+                t.bounty,
+                t.number,
+                t.hope_time,
+                t.price,
+                l.name as label_name,
+                t.address
+EOT;
+        $data = DB::table('pro_mall_reward as t')
+            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
+            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
+            ->where('t.isdelete',0)
+            ->where('t.issquare',1)
+            ->orderBy('t.id','desc')
+            ->selectRaw($expression)
+            ->simplePaginate(10);
+        return $data;
+    }
+
+    /**
+     * 获取发布的悬赏任务
+     * @param $uid
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function GetMyReward($uid){
+        $expression = <<<EOT
+            t.id,
+            t.title,
+            t.number,
+            t.bounty,
+            t.hope_time,
+            t.create_time,
+            (select fileurl from pro_mall_files where release_type=4 and release_id=t.id limit 1) as file_url,
+            (select count(*) from pro_mall_reward_order where reward_id=t.id and isdelete=0 and status=0) as news
+EOT;
+        return DB::table('pro_mall_reward as t')
+            ->where('t.type',0)
+            ->where('t.isdelete',0)
+            ->where('t.uid',$uid)
+            ->selectRaw($expression)
+            ->orderBy('t.id','desc')
+            ->simplePaginate(10);
+
+    }
+
+    /**
+     * 获取申请的悬赏任务
+     * @param $uid
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function GetMyApplyReward($uid){
+        $expression = <<<EOT
+            o.id,
+            o.reward_id,
+            t.title,
+            t.bounty,
+            t.price,
+            t.create_time,
+            (select fileurl from pro_mall_files where release_type=4 and release_id=t.id limit 1) as file_url
+EOT;
+        return DB::table('pro_mall_reward_order as o')
+            ->leftJoin('pro_mall_reward as t','t.id','=','o.reward_id')
+            ->where('o.isdelete',0)
+            ->where('o.uid',$uid)
+            ->selectRaw($expression)
+            ->orderBy('o.id','desc')
+            ->simplePaginate(10);
+    }
+
+    /**
+     * 获取悬赏任务申请列表
+     * @param $id
+     * @return \Illuminate\Support\Collection
+     */
+    public static function GetRewardOrderList($id){
+        $expression = <<<EOT
+            t.id,
+            t.reward_id,
+            t.uid, 
+            u.nickname,
+            u.head_url,
+            t.create_time,
+            t.status
+EOT;
+        return DB::table('pro_mall_reward_order  as t')
+            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
+            ->where('t.reward_id',$id)
+            ->where('t.isdelete',0)
+            ->selectRaw($expression)
+            ->orderBy('t.id','desc')
+            ->get();
+
+    }
 }

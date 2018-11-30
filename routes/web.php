@@ -17,8 +17,14 @@ $router->get('/', function () use ($router) {
 
 //获取验证码
 $router->get('/GetCode','UserController@GetCode');
+//注册校验
+$router->get('/RegisterCheck','UserController@RegisterCheck');
 //注册
 $router->post('/Register','UserController@Register');
+//忘记密码校验
+$router->get('/UpdateCheck','UserController@UpdateCheck');
+//设置新密码
+$router->post('/UpdatePwd','UserController@UpdatePwd');
 //登录
 $router->get('/Login','UserController@Login');
 
@@ -34,17 +40,16 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetUserWallet','UserController@GetUserWallet');
     //修改用户信息
     $router->post('/UpdateUser','UserController@UpdateUser');
+
     /**
      * 好友
      */
     //获取用户好友
-    $router->get('/GetFriends','FriendController@GetFriends');
-    //查找好友
-    $router->get('/FindFriend','FriendController@FindFriend');
+    $router->get('/GetFriendList','FriendController@GetFriendList');
     //添加好友
     $router->post('/AddFriend','FriendController@AddFriend');
     //获取好友申请列表
-    $router->get('/GetApply','FriendController@GetApply');
+    $router->get('/GetFriendApply','FriendController@GetFriendApply');
     //同意/拒绝好友
     $router->post('/IsAgree','FriendController@IsAgree');
     //查看好友信息
@@ -52,10 +57,8 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     /**
      * 标签
      */
-    //获取系统标签
-    $router->get('/GetSysLabel','LabelController@GetSysLabel');
-    //获取用户标签
-    $router->get('/GetUserLabel','LabelController@GetUserLabel');
+    //获取标签(包含系统标签和自定义标签)
+    $router->get('/GetLabelList','LabelController@GetLabelList');
     //编辑标签(新增/修改)
     $router->post('/EditLabel','LabelController@EditLabel');
     //删除标签
@@ -82,10 +85,12 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetDynamicList','DynamicController@GetDynamicList');
     //圈子普通动态
     $router->get('/GetCircleDynamic','DynamicController@GetCircleDynamic');
+    //广场动态
+    $router->get('/GetSquareDynamic','DynamicController@GetSquareDynamic');
     //普通动态置顶或取消置顶
-    $router->post('/Topping','DynamicController@Topping');
+    $router->post('/ToppingDynamic','DynamicController@ToppingDynamic');
     //删除动态
-    $router->post('/DelBusiness','DynamicController@DelBusiness');
+    $router->post('/DeleteDynamic','DynamicController@DeleteDynamic');
     /**
      * 我的物流地址
      */
@@ -110,6 +115,12 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetGoodsList','GoodsController@GetGoodsList');
     //获取圈子商品列表
     $router->get('/GetCircleGoods','GoodsController@GetCircleGoods');
+    //广场付费商品
+    $router->get('/GetSquareGoods','GoodsController@GetSquareGoods');
+    //付费商品置顶或取消置顶
+    $router->post('/ToppingGoods','GoodsController@ToppingGoods');
+    //删除付费商品
+    $router->post('/DeleteGoods','GoodsController@DeleteGoods');
     /**
      * 积分商品
      */
@@ -123,6 +134,12 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetIntegralList','IntegralControllers@GetIntegralList');
     //获取圈子商品列表
     $router->get('/GetCircleIntegral','IntegralControllers@GetCircleIntegral');
+    //广场积分商品
+    $router->get('/GetSquareIntegral','IntegralControllers@GetSquareIntegral');
+    //积分商品置顶或取消置顶
+    $router->post('/ToppingIntegral','IntegralControllers@ToppingIntegral');
+    //删除积分商品
+    $router->post('/DeleteIntegral','IntegralControllers@DeleteIntegral');
     //我发布的商品（付费商品/积分商品）
     $router->get('/GetMyPostedList','IntegralControllers@GetMyPostedList');
     //我代理的商品（付费商品/积分商品）
@@ -140,5 +157,23 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetRewardList','RewardController@GetRewardList');
     //获取圈子悬赏任务列表
     $router->get('/GetCircleReward','RewardController@GetCircleReward');
+    //广场悬赏任务
+    $router->get('/GetSquareReward','RewardController@GetSquareReward');
+    //任务置顶或取消置顶
+    $router->post('/ToppingReward','RewardController@ToppingReward');
+    //删除任务
+    $router->post('/DeleteReward','RewardController@DeleteReward');
+    //申请任务
+    $router->post('/ApplyReward','RewardController@ApplyReward');
+    //我发布的悬赏任务列表
+    $router->get('/GetMyReward','RewardController@GetMyReward');
+    //我申请的悬赏任务列表
+    $router->get('/GetMyApplyReward','RewardController@GetMyApplyReward');
+    //悬赏任务申请列表
+    $router->get('/GetRewardOrderList','RewardController@GetRewardOrderList');
+    //设置任务订单状态
+    $router->post('/SetRewardOrder','RewardController@SetRewardOrder');
+    //撤销任务订单
+    $router->post('/CancelRewardOrder','RewardController@CancelRewardOrder');
 
 });

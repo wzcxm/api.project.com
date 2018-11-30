@@ -25,76 +25,29 @@ use Illuminate\Support\Facades\DB;
 class UserController extends Controller
 {
     use ReturnData;
+
     /**
-     * 用户注册
+     * 获取验证码
      * @param Request $request
      * @return string
      */
-    public function Register(Request $request){
+    public function GetCode(Request $request){
         try{
-            $type = $request->input('type','');
-            $username = $request->input('username','');
-            $code = $request->input('code','');
-            $pwd = $request->input('pwd','');
-
-            if($type !='telephone' && $type != 'email'){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = "参数type错误，必须是telephone或email";
-                return $this->toJson();
-            }
-            if(empty($username) || empty($code) || empty($pwd)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = "用户名、密码或验证码为空";
-                return $this->toJson();
-            }
-            //校验是否是正确的手机/Email格式
-            if($type =='telephone'){
-                if(!Common::IsTelephone($username)){
-                    $this->code = ErrorCode::PARAM_ERROR;;
-                    $this->message = "手机号格式错误";
-                    return $this->toJson();
-                }
-            }else{
-                if(!Common::IsEmail($username)){
-                    $this->code = ErrorCode::PARAM_ERROR;;
-                    $this->message = "Email格式错误";
-                    return $this->toJson();
-                }
-            }
-            //校验是否被注册
-            if(DataComm::CheckPhoneOrEmail($type,$username)){
+            $tel =  $request->input('tel',0);
+            if(!Common::IsTelephone($tel)){
                 $this->code = ErrorCode::PARAM_ERROR;;
-                $this->message = $type=='telephone'?"手机号":"邮箱"."已经被注册";
+                $this->message = "手机号格式错误";
                 return $this->toJson();
             }
-            //校验验证码是否合法或过期
-//            if(!Common::CheckCode($username,$code)){
-//                $ret_data->code = ErrorCode::PARAM_ERROR;;
-//                $ret_data->message = "验证码错误，或已失效！";
-//                return $ret_data->toJson();
-//            }
-            //创建用户信息
-            $user = new Users();
-            if($type == 'telephone')
-                $user->telephone = $username;
-            else
-                $user->email = $username;
-            $user->pwd = md5($pwd);
-            $user->file_key = str_random(65);
-            //事务保存用户信息，并生成用户钱包
-            DB::transaction(function ()use($user){
-                $user->save();
-                //生成用户钱包
-                $wallet = new Wallet();
-                $wallet->uid = $user->uid;
-                $wallet->save();
-            });
-            //生成token
-            //$token = auth()->tokenById($user->uid);
-            //返回客户端，用户信息
-            //$this->data['UserInfo'] = $user;
-            //$this->data['key'] = $user->file_key;
-            //$this->data['token'] = $token;
+            //生产6位数验证码
+            $code = rand(100000,999999);
+            //发送验证码短信
+
+            //验证码保存到缓存，2分钟有效
+            $expiresAt = Carbon::now() ->addMinutes(2);
+            Cache::put($tel, $code, $expiresAt);
+            //Log::info($code);
+            $this->data = $code;
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -105,26 +58,151 @@ class UserController extends Controller
     }
 
     /**
+     * 注册校验
+     * @param Request $request
+     * @return string
+     */
+    public function RegisterCheck(Request $request){
+        try{
+            $tel = $request->input('tel',0);
+            $code = $request->input('code',0);
+            if(empty($tel)  || empty($code)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = "手机号或验证码不能为空";
+                return $this->toJson();
+            }
+            //校验验证码
+            if(!Common::CheckCode($tel,$code)){
+                $this->code = ErrorCode::PARAM_ERROR;;
+                $this->message = "验证码错误，或已失效！";
+                return $this->toJson();
+            }
+            //校验是否被注册
+            if(DataComm::CheckPhone($tel)){
+                $this->code = ErrorCode::PARAM_ERROR;;
+                $this->message = "手机号已经被注册";
+                return $this->toJson();
+            }
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+    /**
+     * 用户注册
+     * @param Request $request
+     * @return string
+     */
+    public function Register(Request $request){
+        try{
+            $tel = $request->input('tel','');
+            $pwd = $request->input('pwd','');
+            $source = $request->input('source','');
+            if(empty($tel) || empty($pwd)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = "手机号和密码不能为空";
+                return $this->toJson();
+            }
+            //创建用户信息
+            $user = new Users();
+            $user->telephone = $tel;
+            $user->pwd = md5($pwd);
+            $user->source = $source;
+            $user->file_key = str_random(65);
+            //事务保存用户信息，并生成用户钱包
+            DB::transaction(function ()use($user){
+                $user->save();
+                //生成用户钱包
+                $wallet = new Wallet();
+                $wallet->uid = $user->uid;
+                $wallet->save();
+            });
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+
+    }
+
+    /**
+     * 修改密码，检查验证码
+     * @param Request $request
+     * @return string
+     */
+    public function UpdateCheck(Request $request){
+        try{
+            $tel = $request->input('tel',0);
+            $code = $request->input('code',0);
+            if(empty($tel)  || empty($code)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = "手机号或验证码不能为空";
+                return $this->toJson();
+            }
+            //校验验证码
+            if(!Common::CheckCode($tel,$code)){
+                $this->code = ErrorCode::PARAM_ERROR;;
+                $this->message = "验证码错误，或已失效！";
+                return $this->toJson();
+            }
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+
+    /**
+     * 修改密码
+     * @param Request $request
+     * @return string
+     */
+    public function UpdatePwd(Request $request){
+        //修改密码
+        $tel = $request->input('tel','');
+        $newpwd = $request->input('newpwd','');
+        if(empty($newpwd) || empty($tel)){
+            $this->code = ErrorCode::PARAM_ERROR;
+            $this->message = "手机号或新密码不能为空";
+            return $this->toJson();
+        }
+        $user =  Users::where('telephone',$tel)->first();
+        if(empty($user)){
+            $this->code = ErrorCode::PARAM_ERROR;
+            $this->message = "用户不存在";
+            return $this->toJson();
+        }
+        $user->pwd = md5($newpwd);
+        $user->save();
+        return $this->toJson();
+    }
+
+
+
+    /**
      * 用户登录
      * @param Request $request
      * @return string
      */
     public function Login(Request $request){
         try{
-            $username = $request->input('username','');
+            $tel = $request->input('tel','');
             $pwd = $request->input('pwd','');
-            if(empty($username)  || empty($pwd)){
+            if(empty($tel)  || empty($pwd)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = "用户名或密码不能为空";
                 return $this->toJson();
             }
-            $user = Users::where(function ($query)use($username){
-                        $query->where('telephone',$username)
-                              ->orWhere('email',$username);
-                    })->where('pwd',md5($pwd))->first();
+            $user = Users::where('telephone',$tel)->where('pwd',md5($pwd))->first();
             if(empty($user)){
                 $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = "用户名或密码错误";
+                $this->message = "手机号或密码错误";
                 return $this->toJson();
             }
             //每次登录更新一次文件上传key
@@ -202,7 +280,6 @@ class UserController extends Controller
      */
     public function UpdateUser(Request $request){
         try{
-            //$uid =  $request->input('uid','');
             $user = auth()->user();
             //修改昵称
             $nickname = $request->input('nickname','');
@@ -213,7 +290,7 @@ class UserController extends Controller
             $telephone = $request->input('telephone','');
             if(!empty($telephone)){
                 if(Common::IsTelephone($telephone)){
-                    if(DataComm::CheckPhoneOrEmail('telephone',$telephone)){
+                    if(DataComm::CheckPhone($telephone)){
                         $this->code = ErrorCode::PARAM_ERROR;
                         $this->message = "手机号已被注册";
                         return $this->toJson();
@@ -230,13 +307,7 @@ class UserController extends Controller
             $email = $request->input('email','');
             if(!empty($email) ){
                 if(Common::IsEmail($email)){
-                    if(DataComm::CheckPhoneOrEmail('email',$email)){
-                        $this->code = ErrorCode::PARAM_ERROR;
-                        $this->message = "email已被注册";
-                        return $this->toJson();
-                    }else{
-                        $user->email = $email;
-                    }
+                    $user->email = $email;
                 } else{
                     $this->code = ErrorCode::PARAM_ERROR;
                     $this->message = "Email格式错误";
@@ -252,18 +323,6 @@ class UserController extends Controller
             $address = $request->input('address','');
             if(!empty($address)){
                 $user->address = $address;
-            }
-            //修改密码
-            $newpwd = $request->input('newpwd','');
-            $oldpwd = $request->input('oldpwd','');
-            if(!empty($newpwd) && !empty($oldpwd)){
-                if($user->pwd == md5($oldpwd)){
-                    $user->pwd = md5($newpwd);
-                }else{
-                    $this->code = ErrorCode::PARAM_ERROR;
-                    $this->message = "原密码错误";
-                    return $this->toJson();
-                }
             }
             //修改头像
             $head_url = $request->input('head_url','');
@@ -284,55 +343,7 @@ class UserController extends Controller
 
 
 
-    /**
-     * 获取验证码
-     * @param Request $request
-     * @return string
-     */
-    public function GetCode(Request $request){
-        try{
-            $type =  $request->input('type',0);
-            $source = $request->input('source',0);
-            if($type!= 'telephone' && $type!= 'email'){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'type错误，必须为telephone或email';
-                return $this->toJson();
-            }
-            if($type == 'telephone') {
-                if(!Common::IsTelephone($source)){
-                    $this->code = ErrorCode::PARAM_ERROR;;
-                    $this->message = "手机号格式错误";
-                    return $this->toJson();
-                }
-            }else{
-                if(!Common::IsEmail($source)){
-                    $this->code = ErrorCode::PARAM_ERROR;;
-                    $this->message = "Email格式错误";
-                    return $this->toJson();
-                }
-            }
-            //生产6位数验证码
-            $code = rand(100000,999999);
-            if($type == 'email'){
-                //放入队列，发送邮件
-                dispatch(new EmailJob($code,$source));
-            }else{
-                //发送短信
 
-            }
-            //验证码保存到缓存，2分钟有效
-            $expiresAt = Carbon::now() ->addMinutes(2);
-            Cache::put($source, $code, $expiresAt);
-
-            //Log::info($code);
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-
-    }
 
 
 }

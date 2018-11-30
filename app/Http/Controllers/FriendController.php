@@ -28,7 +28,7 @@ class FriendController extends Controller
      * @param Request $request
      * @return string
      */
-    public function GetFriends(Request $request){
+    public function GetFriendList(Request $request){
         try{
             $uid =  auth()->id();
             $this->data['Friends'] = DataComm::GetFriends($uid);
@@ -40,33 +40,6 @@ class FriendController extends Controller
         }
     }
 
-    /**
-     * 查找好友
-     * @param Request $request
-     * @return string
-     */
-    public function  FindFriend(Request $request){
-        try{
-            $number =  $request->input('value','');
-            if(empty($number)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'value不能为空';
-                return $this->toJson();
-            }
-            //根据uid/电话/邮箱/昵称查找好友
-            $users = Users::where('uid',$number)
-                ->orWhere('telephone',$number)
-                ->orWhere('email',$number)
-                ->select('uid','nickname','head_url')
-                ->get();
-            $this->data['Users'] = $users;
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-    }
 
     /**
      * 添加好友
@@ -77,14 +50,13 @@ class FriendController extends Controller
         try{
             $uid = auth()->id();
             $friend_uid =  $request->input('friend_uid','');
-            $remark = $request->input('remark','');
             if(empty($friend_uid)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = 'friend_uid不能为空';
                 return $this->toJson();
             }
             //保存添加好友请求
-            Apply::insert(['ask_uid'=>$uid,'reply_uid'=>$friend_uid,'remark'=>$remark]);
+            Apply::insert(['ask_uid'=>$uid,'reply_uid'=>$friend_uid]);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -98,10 +70,10 @@ class FriendController extends Controller
      * @param Request $request
      * @return string
      */
-    public function GetApply(Request $request){
+    public function GetFriendApply(Request $request){
         try{
             $uid = auth()->id();
-            $this->data['Applys'] = DataComm::GetApplyList($uid);
+            $this->data['FriendApply'] = DataComm::GetApplyList($uid);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -145,27 +117,27 @@ class FriendController extends Controller
         }
     }
 
-    /**
-     * 获取好友信息
-     * @param Request $request
-     * @return string
-     */
-    public function  GetFriendInfo(Request $request){
-        try{
-            $uid = $request->input('uid','');
-            if(empty($uid)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'uid不能为空';
-                return $this->toJson();
-            }
-            $user =  Users::find($uid,['uid','nickname','head_url','telephone','level','integral','email','age','address']);
-            $this->data['FriendInfo'] = $user;
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-
-    }
+//    /**
+//     * 获取好友信息
+//     * @param Request $request
+//     * @return string
+//     */
+//    public function  GetFriendInfo(Request $request){
+//        try{
+//            $uid = $request->input('uid','');
+//            if(empty($uid)){
+//                $this->code = ErrorCode::PARAM_ERROR;
+//                $this->message = 'uid不能为空';
+//                return $this->toJson();
+//            }
+//            $user =  Users::find($uid,['uid','nickname','head_url','telephone','level','integral','email','age','address']);
+//            $this->data['FriendInfo'] = $user;
+//            return $this->toJson();
+//        }catch (\Exception $e){
+//            $this->code = ErrorCode::EXCEPTION;
+//            $this->message = $e->getMessage();
+//            return $this->toJson();
+//        }
+//
+//    }
 }

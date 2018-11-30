@@ -89,15 +89,89 @@ abstract  class ReleaseEnum{
  * @package App\Lib
  */
 abstract class ErrorCode{
-    //token错误
+    /**
+     * token错误
+     */
     const  TOKEN_ERROR = 100;
-    //数据不存在或错误
+    /**
+     * 数据不存在或错误
+     */
     const DATA_LOGIN = 200;
-    //执行异常
+    /**
+     * 执行异常
+     */
     const EXCEPTION = 300;
-    //参数错误或参数值不合法
+    /**
+     * 参数错误或参数值不合法
+     */
     const PARAM_ERROR = 400;
-    //禁止登录
+    /**
+     * 禁止登录
+     */
     const NO_LOGIN = 500;
 
+}
+
+/**
+ * 悬赏任务订单状态
+ * Class RewardOrderStatus
+ * @package App\Lib
+ */
+abstract class RewardOrderStatus{
+    /**
+     * 申请
+     */
+    const APPLY = 0;
+    /**
+     * 采纳
+     */
+    const ACCEPT = 1;
+    /**
+     * 执行
+     */
+    const COMPLY = 2;
+    /**
+     * 完工
+     */
+    const COMPLETED = 3;
+    /**
+     * 确认完成
+     */
+    const END = 4;
+}
+
+/**
+ * 资金流水状态
+ * Class FundsEnum
+ * @package App\Lib
+ */
+abstract class FundsEnum{
+    /**
+     * 购买商品
+     */
+    const BUY  = 1;
+    /**
+     * 卖出商品
+     */
+    const SELL = 2;
+    /**
+     * 充值
+     */
+    const RECHARGE = 3;
+    /**
+     * 提现
+     */
+    const WITHDRAW =4;
+    /**
+     * 提成
+     */
+    const COMMISSION = 5;
+    /**
+     * 发布任务
+     */
+    const RELEASE = 6;
+    /**
+     * 完成任务
+     */
+    const FINISH = 7;
 }

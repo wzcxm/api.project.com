@@ -84,6 +84,9 @@ class Common
             case ReleaseEnum::DISCUSS:
                 $table = 'pro_mall_comment';
                 break;
+            case ReleaseEnum::REWARD_ORDER:
+                $table = 'pro_mall_reward_order';
+                break;
             default:
                 $table = '';
                 break;

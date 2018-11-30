@@ -21,27 +21,13 @@ class LabelController extends Controller
      * @param Request $request
      * @return string
      */
-    public function GetSysLabel(Request $request){
-        try{
-            $label = Label::where('type',1)->where('isdelete',0)->get(['id','name']);
-            $this->data['Label'] = $label;
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-    }
-
-    /**
-     * 获取用户自定义标签
-     * @param Request $request
-     * @return string
-     */
-    public function GetUserLabel(Request $request){
+    public function GetLabelList(Request $request){
         try{
             $uid =  auth()->id();;
-            $label = Label::where('uid',$uid)->where('isdelete',0)->get(['id','name']);
+            $label = Label::where(function ($query)use($uid){
+                $query->where('type',1)
+                    ->orWhere('uid',$uid);
+            })->where('isdelete',0)->get(['id','name','type','uid']);
             $this->data['Label'] = $label;
             return $this->toJson();
         }catch (\Exception $e){
