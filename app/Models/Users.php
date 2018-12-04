@@ -64,11 +64,17 @@ class Users extends Model implements AuthenticatableContract, AuthorizableContra
      * @var array
      */
     protected $hidden = [
-        'pwd','source','status','utype',
-        'islogin','isdynamic','iscomment',
-        'isgoods','isintegralgoods',
-        'isreward','isdelete','create_time',
-        'update_time','file_key'
+        'pwd',
+        'pay_pwd',
+        'access',
+        'is_online',
+        'last_ip',
+        'gender',
+        'bg_img',
+        'isdelete',
+        'create_time',
+        'update_time',
+        'file_key'
     ];
     /**
      * 用户钱包

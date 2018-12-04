@@ -22,7 +22,7 @@ class CheckToken extends BaseMiddleware
         try{
             if(auth()->check()) {
                 $user = auth()->user();
-                if($user->islogin == 1){
+                if($user->access == 1){
                     $this->code = ErrorCode::NO_LOGIN;
                     $this->message = '禁止登录';
                     return $this->toJson();

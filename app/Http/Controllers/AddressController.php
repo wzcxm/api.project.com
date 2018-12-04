@@ -29,9 +29,11 @@ class AddressController extends Controller
             $id =  $request->input('id','');
             $uid = auth()->id();
             $receiver = $request->input('receiver','');
-            $telephone = $request->input('telephone','');
+            $tel = $request->input('tel','');
+            $area = $request->input('area','');
+            $label = $request->input('label','');
             $address = $request->input('address','');
-            $isdefault = $request->input('isdefault',0);
+            $default = $request->input('default',0);
             if(empty($id)){
                 $address_model = new Address(); //新增
             }else{
@@ -39,9 +41,11 @@ class AddressController extends Controller
             }
             $address_model->uid = $uid;
             $address_model->receiver = $receiver;
-            $address_model->telephone = $telephone;
+            $address_model->tel = $tel;
             $address_model->address = $address;
-            $address_model->isdefault = $isdefault;
+            $address_model->default = $default;
+            $address_model->area = $area;
+            $address_model->label = $label;
             DB::transaction(function() use($address_model){
                 //如果本条地址设为默认地址，则其他地址改为非默认地址
                 if($address_model->isdefault == DefaultEnum::YES){

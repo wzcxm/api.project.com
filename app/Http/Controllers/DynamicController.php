@@ -9,7 +9,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Lib\Common;
 use App\Lib\DefaultEnum;
 use App\Lib\ErrorCode;
 use App\Lib\ReleaseEnum;
@@ -32,14 +31,15 @@ class DynamicController extends Controller
     public function EditDynamic(Request $request){
         try{
             $uid =  auth()->id();
-            $id = $request->input('id','');
-            $content = $request->input('content','');
-            $access = $request->input('access',0);
-            $issquare = $request->input('issquare',0);
-            $label = $request->input('label',0);
-            $visible_uids = $request->input('visible_uids','');
-            $files = $request->input('files','');
-            $address = $request->input('address','');
+            $id = $request->input('id',0); //id
+            $main_url = $request->input('main_url',''); //主图
+            $title = $request->input('title',''); //标题
+            $content = $request->input('content','');//内容
+            $audio_url = $request->input('audio_url',''); //音频地址
+            $is_plaza = $request->input('is_plaza',0); //是否发布到广场
+            $address = $request->input('address',''); //所在地址
+            $label_id = $request->input('label_id',0);//标签
+            $infix_id = $request->input('infix_id','');//商品或任务id
             //生成动态model
             if(empty($id)){
                 $dynamic =  new Dynamic();
@@ -48,31 +48,16 @@ class DynamicController extends Controller
                 $dynamic =  Dynamic::find($id);
                 $dynamic->update_time = date("Y-m-d H:i:s");
             }
+            $dynamic->main_url = $main_url; //主图
+            $dynamic->title = $title; //标题
             $dynamic->content = $content; //发布内容
-            if($issquare == DefaultEnum::YES){    //如果允许发布到广场，那么访问权限默认是公开的
-                $dynamic->issquare = DefaultEnum::YES;
-                $dynamic->access = AccessEnum::PUBLIC;
-            }else{
-                $dynamic->access = $access;
-                if($access == AccessEnum::PARTIAL){          //如果是部分用户可见，则保存可见用户（数组形式）
-                    $dynamic->visible_uids = explode('|',$visible_uids);
-                }
-            }
-            $dynamic->label = $label;  //标签
-            $dynamic->address = $address;   //所在地址
-            if(!empty($files)){    //如果文件不为空，那么表示有附件
-                $dynamic->isannex = DefaultEnum::YES;
-            }
+            $dynamic->audio_url = $audio_url; //音频地址
+            $dynamic->is_plaza = $is_plaza; //是否发布到广场
+            $dynamic->address = $address; //所在地址
+            $dynamic->label_id = $label_id; //标签
+            $dynamic->infix_id = $infix_id; //商品或任务id
             //保存动态
-            DB::transaction(function () use($dynamic,$files){
-                //保存动态
-                $dynamic->save();
-                //如有文件，保存文件记录
-                if(!empty($files)){
-                    //保存文件
-                    DataComm::SaveFiles(ReleaseEnum::DYNAMIC,$dynamic->id,$files);
-                }
-            });
+            $dynamic->save();
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -89,9 +74,10 @@ class DynamicController extends Controller
     public function TurnDynamic(Request $request){
         try{
             $uid =  auth()->id();
-            $front_id = $request->input('turn_id',0);
+            $turn_id = $request->input('turn_id',0);
+            $init_id = $request->input('init_id',0);
             $source = $request->input('source',0);
-            if(empty($front_id)){
+            if(empty($turn_id)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = '转发id不能为空';
                 return $this->toJson();
@@ -99,23 +85,23 @@ class DynamicController extends Controller
             //生成转发动态model
             $dynamic =  new Dynamic();
             $dynamic->uid = $uid; //发布用户
-            $dynamic->content = '转发动态'; //发布内容
+            $dynamic->init_id = $init_id; //初始id
             $dynamic->type = DefaultEnum::YES;
-            $dynamic->front_id = $front_id; //转发的id
+            $dynamic->turn_id = $turn_id; //转发的id
             //保存动态
             DB::transaction(function () use($dynamic,$source){
                 //保存转发动态
                 $dynamic->save();
-                $turn = Dynamic::find($dynamic->front_id);
+                $turn = Dynamic::find($dynamic->turn_id);
                 //保存转发记录
                 Turn::insert(
                     ['release_type'=>ReleaseEnum::DYNAMIC,
-                    'release_id'=>$dynamic->front_id,
+                    'release_id'=>$dynamic->turn_id,
                     'uid'=>$dynamic->uid,
                     'issue_uid'=>$turn->uid,
                     'source'=>$source]);
                 //该条动态增加一次转发
-                DataComm::Increase(ReleaseEnum::DYNAMIC,$dynamic->front_id,'turnnum');
+                DataComm::Increase(ReleaseEnum::DYNAMIC,$dynamic->turn_id,'turns');
 
             });
             return $this->toJson();
@@ -145,20 +131,12 @@ class DynamicController extends Controller
                 $this->message = '动态数据不存在';
                 return $this->toJson();
             }
-            if($dynamic->type == DefaultEnum::NO){
-                //如有文件，加入文件地址
-                if($dynamic->isannex == DefaultEnum::YES){
-                    $dynamic->files = DataComm::GetFiles(ReleaseEnum::DYNAMIC,$id);
+            if(!empty($dynamic->infix_id)){
+                $infix_arr = explode('_',$dynamic->infix_id);
+                if(count($infix_arr)>0){
+                    $dynamic->infix_info = ''; //商品或任务信息
                 }
-            }else{
-                $turn = DataComm::GetDynamicInfo($dynamic->front_id);
-                if(!empty($turn)){
-                    //如有文件，加入文件地址
-                    if($turn->isannex == DefaultEnum::YES){
-                        $turn->files = DataComm::GetFiles(ReleaseEnum::DYNAMIC,$turn->id);
-                    }
-                    $dynamic->turn = $turn;
-                }
+
             }
             //动态信息/转发动态信息
             $this->data['Dynamic'] = $dynamic;
@@ -240,30 +218,55 @@ class DynamicController extends Controller
 
 
     /**
+     * 广场动态列表
+     * @param Request $request
+     * @return string
+     */
+    public function GetSquareDynamic(Request $request){
+        try{
+            //获取圈子普通动态数据，每次显示10条
+            $data_list = DataComm::GetSquareDynamicList();
+            $data_list = $data_list->items();
+            if(count($data_list)<= 0){
+                $this->message = "最后一页，没有数据了";
+                return $this->toJson();
+            }
+            //获取文件地址
+            $items = json_decode(json_encode($data_list),true);
+            //添加文件访问地址
+            DataComm::SetSquareFileUrl($items,ReleaseEnum::DYNAMIC);
+            $this->data['SquareDynamic'] = $items;
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+
+
+    /**
      * 动态置顶/取消置顶
      * @param Request $request
      * @return string
      */
-    public function Topping(Request $request){
+    public function ToppingDynamic(Request $request){
         try{
             $id = $request->input('id','');
-            $type = $request->input('type','');
-            if(empty($id) || empty($type)){
+            if(empty($id)){
                 $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'id和type不能为空';
+                $this->message = 'id不能为空';
                 return $this->toJson();
             }
-            $table  =  Common::GetTable($type);
-            if(empty($table)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'type值错误';
-                return $this->toJson();
-            }
-            $model = DB::table($table)->where('id',$id)->first();
-            if($model->topping == DefaultEnum::YES){
-                DB::table($table)->where('id',$id)->update(['topping'=>0]);
-            }else{
-                DB::table($table)->where('id',$id)->update(['topping'=>1]);
+            $model = Dynamic::find($id);
+            if(!empty($model)){
+                if($model->topping == DefaultEnum::YES){
+                    $model->topping = 0;
+                }else{
+                    $model->topping =1;
+                }
+                $model->save();
             }
             return $this->toJson();
         }catch (\Exception $e){
@@ -278,22 +281,15 @@ class DynamicController extends Controller
      * @param Request $request
      * @return string
      */
-    public function DelBusiness(Request $request){
+    public function DeleteDynamic(Request $request){
         try{
             $id = $request->input('id','');
-            $type = $request->input('type','');
-            if(empty($id) || empty($type)){
+            if(empty($id)){
                 $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'id和type不能为空';
+                $this->message = 'id不能为空';
                 return $this->toJson();
             }
-            $table  =  Common::GetTable($type);
-            if(empty($table)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'type值错误';
-                return $this->toJson();
-            }
-            DB::table($table)->where('id',$id)->update(['isdelete'=>1]);
+            DB::table('pro_mall_dynamic')->where('id',$id)->update(['isdelete'=>1]);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;

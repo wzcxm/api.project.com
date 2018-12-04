@@ -20,7 +20,7 @@ class DataComm
         return DB::table('pro_mall_friend as f')
             ->leftJoin('pro_mall_users as u','u.uid','=','f.friend_uid')
             ->where('f.uid',$uid)
-            ->select('f.friend_uid','u.nickname','u.head_url')
+            ->select('f.friend_uid','u.nickname','u.head_url','u.telephone')
             ->get();
     }
 
@@ -288,24 +288,26 @@ class DataComm
     public static function GetDynamicInfo($id){
         $expression = <<<EOT
             t.id,
+            t.type,
+            t.turn_id,
+            t.init_id,
             t.uid,
             u.nickname,
             u.head_url,
-            t.type,
-            t.front_id,
-            t.isannex,    
             t.create_time,
-            t.content,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            l.name as label_name,
-            t.address
+            if(t.type=0,t.address,d.address) as address,
+            if(t.type=0,t.title,d.title) as title,
+            if(t.type=0,t.content,d.content) as content,
+            if(t.type=0,t.audio_url,d.audio_url) as audio_url,
+            if(t.type=0,l.name,lb.name) as label_name,
+            if(t.type=0,t.infix_id,d.infix_id) as infix_id
 EOT;
 
         return DB::table('pro_mall_dynamic as t')
+            ->leftJoin('pro_mall_dynamic as d','d.id','=','t.init_id')
             ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
+            ->leftJoin('pro_sys_label as l','l.id','=','t.label_id')
+            ->leftJoin('pro_sys_label as lb','lb.id','=','d.label_id')
             ->where('t.id',$id)
             ->selectRaw($expression)
             ->first();
