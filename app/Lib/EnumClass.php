@@ -62,7 +62,7 @@ abstract  class ReleaseEnum{
      */
     const DYNAMIC = 1;
     /**
-     * 付费商品
+     * 商品
      */
     const GOODS = 2;
     /**

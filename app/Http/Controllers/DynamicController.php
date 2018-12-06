@@ -16,6 +16,7 @@ use App\Lib\ReturnData;
 use App\Lib\AccessEnum;
 use App\Lib\DataComm;
 use App\Models\Dynamic;
+use App\Models\Reward;
 use App\Models\Turn;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,8 @@ class DynamicController extends Controller
             $is_plaza = $request->input('is_plaza',0); //是否发布到广场
             $address = $request->input('address',''); //所在地址
             $label_id = $request->input('label_id',0);//标签
-            $infix_id = $request->input('infix_id','');//商品或任务id
+            $infix_id = $request->input('infix_id',0);//商品或任务id
+            $infix_type = $request->input('infix_type',0);//插入类型：0-商品;1-任务
             //生成动态model
             if(empty($id)){
                 $dynamic =  new Dynamic();
@@ -56,6 +58,7 @@ class DynamicController extends Controller
             $dynamic->address = $address; //所在地址
             $dynamic->label_id = $label_id; //标签
             $dynamic->infix_id = $infix_id; //商品或任务id
+            $dynamic->infix_type = $infix_type;//插入类型
             //保存动态
             $dynamic->save();
             return $this->toJson();
@@ -119,7 +122,8 @@ class DynamicController extends Controller
      */
     public function GetDynamic(Request $request){
         try{
-            $id = $request->input('id','');
+            $id = $request->input('id',0);
+            $uid = auth()->id();
             if(empty($id)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = 'id不能为空';
@@ -132,16 +136,11 @@ class DynamicController extends Controller
                 return $this->toJson();
             }
             if(!empty($dynamic->infix_id)){
-                $infix_arr = explode('_',$dynamic->infix_id);
-                if(count($infix_arr)>0){
-                    $dynamic->infix_info = ''; //商品或任务信息
-                }
-
+                $dynamic->infix_info = DataComm::GetInfixInfo($dynamic->infix_id,$dynamic->infix_type);
             }
             //动态信息/转发动态信息
             $this->data['Dynamic'] = $dynamic;
             //当前查看用户是否点赞
-            $uid = auth()->id();
             $this->data['IsLike'] =DataComm::IsLike(ReleaseEnum::DYNAMIC,$dynamic->id,$uid);
             //评论信息
             $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::DYNAMIC,$dynamic->id);
@@ -160,9 +159,7 @@ class DynamicController extends Controller
      */
     public function GetDynamicList(Request $request){
         try{
-            //$find_uid不为空时，表示查询该用户的动态列表
-            $uid = $request->input('find_uid',auth()->id());
-
+            $uid = auth()->id();
             //获取我的普通动态数据，每次显示10条
             $data_list = DataComm::GetDynamicList($uid);
             $data_list = $data_list->items();
@@ -170,10 +167,9 @@ class DynamicController extends Controller
                 $this->message = "最后一页了，没有数据了";
                 return $this->toJson();
             }
-            //获取文件地址
             $items = json_decode(json_encode($data_list),true);
-            //添加文件访问地址
-            DataComm::SetFileUrl($items,ReleaseEnum::DYNAMIC);
+            //添加评论
+            DataComm::SetComment($items,ReleaseEnum::DYNAMIC,$uid);
             $this->data['DynamicList'] = $items;
             return $this->toJson();
         }catch (\Exception $e){
@@ -201,12 +197,9 @@ class DynamicController extends Controller
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();
             }
-            //获取文件地址
             $items = json_decode(json_encode($data_list),true);
-            //去除没有权限的动态
-            DataComm::FilterRelease($items,$uid);
-            //添加文件访问地址
-            DataComm::SetFileUrl($items,ReleaseEnum::DYNAMIC);
+            //添加评论
+            DataComm::SetComment($items,ReleaseEnum::DYNAMIC,$uid);
             $this->data['CircleDynamic'] = $items;
             return $this->toJson();
         }catch (\Exception $e){
@@ -224,6 +217,7 @@ class DynamicController extends Controller
      */
     public function GetSquareDynamic(Request $request){
         try{
+            $uid = auth()->id();
             //获取圈子普通动态数据，每次显示10条
             $data_list = DataComm::GetSquareDynamicList();
             $data_list = $data_list->items();
@@ -233,8 +227,8 @@ class DynamicController extends Controller
             }
             //获取文件地址
             $items = json_decode(json_encode($data_list),true);
-            //添加文件访问地址
-            DataComm::SetSquareFileUrl($items,ReleaseEnum::DYNAMIC);
+            //添加评论
+            DataComm::SetComment($items,ReleaseEnum::DYNAMIC,$uid);
             $this->data['SquareDynamic'] = $items;
             return $this->toJson();
         }catch (\Exception $e){

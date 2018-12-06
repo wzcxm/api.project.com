@@ -30,32 +30,26 @@ class CommentController extends Controller
     public function  Like(Request $request){
         try{
             $uid =  auth()->id();
-            $release_type = $request->input('pro_type','');
-            $release_id = $request->input('pro_id','');
+            $pro_type = $request->input('pro_type','');
+            $pro_id = $request->input('pro_id','');
             $issue_uid = $request->input('issue_uid',0);
             $source = $request->input('source',0);
-            if(empty($release_type) || empty($release_id) || empty($issue_uid)){
+            if(empty($pro_type) || empty($pro_id) || empty($issue_uid)){
                 $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = 'pro_type、pro_id、issue_uid不能为空';
+                $this->message = 'pro_type或pro_id或issue_uid不能为空';
             }else{
-                DB::transaction(function () use ($release_type,$release_id,$uid,$source,$issue_uid){
-                    $like = Like::where([['release_type',$release_type],['release_id',$release_id],['uid',$uid]])->first();
+                DB::transaction(function () use ($pro_type,$pro_id,$uid,$source,$issue_uid){
+                    $like = Like::where([['release_type',$pro_type],['release_id',$pro_id],['uid',$uid]])->first();
                     if(empty($like)){ //如果该条业务，没有点过赞，则增加点赞记录
                         //保存点赞记录
-                        Like::insert(
-                            ['release_type'=>$release_type,
-                                'release_id'=>$release_id,
-                                'uid'=>$uid,
-                                'source'=>$source,
-                                'issue_uid'=>$issue_uid]
-                        );
+                        Like::insert(['pro_type'=>$pro_type, 'pro_id'=>$pro_id, 'uid'=>$uid, 'source'=>$source, 'issue_uid'=>$issue_uid]);
                         //该条业务增加一次点赞数量
-                        DataComm::Increase($release_type,$release_id,'likenum');
+                        DataComm::Increase($pro_type,$pro_id,'likes');
                     }else{ //如果已经点赞，则表示取消点赞，则删除点赞记录
                         //删除点赞记录
                         $like->delete();
                         //该条业务减少一次点赞数量
-                        DataComm::Decrement($release_type,$release_id,'likenum');
+                        DataComm::Decrement($pro_type,$pro_id,'likes');
                     }
                 });
             }
@@ -74,40 +68,33 @@ class CommentController extends Controller
     public function Comment(Request $request){
         try{
             $uid =  auth()->id();
-            $release_type = $request->input('pro_type','');
-            $release_id = $request->input('pro_id','');
+            $pro_type = $request->input('pro_type','');
+            $pro_id = $request->input('pro_id','');
             $comment = $request->input('comment','');
             $reply_id = $request->input('reply_id',0);
             $source = $request->input('source',0);
-            $files = $request->input('files','');
+            $img_url = $request->input('files','');
             $issue_uid = $request->input('issue_uid',0);
-            if(empty($release_type) ||  empty($comment) || empty($release_id) || empty($issue_uid)){
+            if(empty($pro_type) ||  empty($comment) || empty($pro_id) || empty($issue_uid)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = 'comment、pro_type、pro_id、issue_uid不能为空';
             }else{
                 //生成评论记录
                 $comment =  new Comment();
-                $comment->release_type = $release_type;
-                $comment->release_id = $release_id;
+                $comment->pro_type = $pro_type;
+                $comment->pro_id = $pro_id;
                 $comment->issue_uid = $issue_uid;
                 $comment->uid = $uid;
                 $comment->comment = $comment;
                 $comment->reply_id = $reply_id;
                 $comment->source = $source;
+                $comment->img_url = $img_url;
                 //保存评论记录
-                DB::transaction(function () use ($comment,$files){
+                DB::transaction(function () use ($comment){
                     //保存评论记录
                     $comment->save();
-                    //如评论有图片，保存图片地址
-                    if(!empty($files)){
-                        Files::insert(['release_type'=>ReleaseEnum::DISCUSS,'release_id'=>$comment->id,'fileurl'=>$files]);
-                    }
                     //该条业务增加一次评论数量
-                    DataComm::Increase($comment->release_type,$comment->release_id,'discussnum');
-                    //如果是回复的评论，回复的评论的评论次数加1
-                    if(!empty($comment->reply_id)){
-                        Comment::find($comment->reply_id)->increment('discussnum');
-                    }
+                    DataComm::Increase($comment->pro_type,$comment->pro_id,'discuss');
                 });
             }
         }catch (\Exception $e){
@@ -132,11 +119,7 @@ class CommentController extends Controller
             DB::transaction(function ()use($id){
                 $comment = Comment::find($id);
                 //该条业务减少一次评论数量
-                DataComm::Decrement($comment->release_type,$comment->release_id,'discussnum');
-                //如果是回复的评论，回复的评论的评论次数减1
-                if(!empty($comment->reply_id)){
-                    Comment::find($comment->reply_id)->decrement('discussnum');
-                }
+                DataComm::Decrement($comment->pro_type,$comment->pro_id,'discuss');
                 $comment->delete();
             });
         }catch (\Exception $e){
