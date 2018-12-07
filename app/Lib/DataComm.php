@@ -184,18 +184,17 @@ class DataComm
 
 
     /**
-     * 获取最新3条评论信息
+     * 获取动态全部评论信息
      * @param $type
-     * @param $id
+     * @param $id_arr
      * @return \Illuminate\Support\Collection|null
      */
-    public static  function GetCommentThree($type,$id){
+    public static  function GetCommentAll($type,$id_arr){
         $data = DB::table('view_get_comment')
             ->where('pro_type',$type)
-            ->where('pro_id',$id)
+            ->whereIn('pro_id',$id_arr)
             ->select('id','nickname','comment')
             ->orderBy('create_time','desc')
-            ->limit(3)
             ->get();
         return $data??null;
     }
@@ -207,6 +206,9 @@ class DataComm
      * @param $uid
      */
     public static function SetComment(&$items,$type,$uid){
+
+        $id_arr = array_column($items, 'id');
+
         foreach ($items as &$data){
             //如果有插入商品或任务，添加商品或任务信息
             if(!empty($data['infix_id'])){
@@ -277,36 +279,8 @@ class DataComm
      * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Query\Builder|null|object
      */
     public static function GetGoodsInfo($id){
-        $expression = <<<EOT
-            t.id,
-            t.uid,
-            u.nickname,
-            u.head_url,
-            t.type,
-            t.create_time,
-            t.turnprice,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            if(t.type=0,t.title,g.title) as title,
-            if(t.type=0,t.remark,g.remark) as remark,
-            if(t.type=0,t.number,g.number) as number,
-            if(t.type=0,l.name,a.name) as label_name,
-            if(t.type=0,t.address,g.address) as address,
-            if(t.type=0,t.price,g.price) as price,
-            if(t.type=0,t.firstprice,g.firstprice) as firstprice,
-            if(t.type=0,t.fare,g.fare) as fare,
-            if(t.type=0,t.peak,g.peak) as peak,
-            if(t.type=0,if(t.isannex=1,t.id,0),if(g.isannex=1,g.id,0)) as file_id,
-            (select count(0) from pro_mall_order  where order_type=0 and initial_id = if(t.type=0,t.id,g.id)) as sell_num
-EOT;
-        return DB::table('pro_mall_goods as t')
-            ->leftJoin('pro_mall_goods as g','g.id','=','t.first_id')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->leftJoin('pro_sys_label as a','a.id','=','g.label')
-            ->where('t.id',$id)
-            ->selectRaw($expression)
+        return DB::table('view_get_goods')
+            ->where('id',$id)
             ->first();
     }
 
@@ -316,50 +290,14 @@ EOT;
      * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Database\Query\Builder
      */
     public static function GetGoodsList($id){
-        $expression = <<<EOT
-            t.id,
-            t.uid,
-            u.nickname,
-            u.head_url,
-            t.type,
-            t.create_time,
-            t.topping,
-            t.turnprice,
-            t.isannex,
-            t.visible_uids,
-            t.access,
-            t.issquare,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            if(t.type=0,t.title,d.title) as title,
-            if(t.type=0,t.remark,d.remark) as remark,
-            if(t.type=0,t.number,d.number) as number,
-            if(t.type=0,l.name,a.name) as label_name,
-            if(t.type=0,t.address,d.address) as address,
-            if(t.type=0,t.price,d.price) as price,
-            if(t.type=0,t.firstprice,d.firstprice) as firstprice,
-            if(t.type=0,t.fare,d.fare) as fare,
-            if(t.type=0,t.peak,d.peak) as peak,
-            d.id as init_id,
-            d.isannex as init_annex,
-            d.isdelete as init_status
-EOT;
-        $data = DB::table('pro_mall_goods as t')
-            ->leftJoin('pro_mall_goods as d','d.id','=','t.first_id')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->leftJoin('pro_sys_label as a','a.id','=','d.label')
-            ->where('t.isdelete',0);
+        $data = DB::table('view_goods_list');
         if(is_array($id)){
-            $data = $data->whereIn('t.uid',$id);
+            $data = $data->whereIn('uid',$id);
         }else{
-            $data = $data->where('t.uid',$id);
+            $data = $data->where('uid',$id);
         }
-        $data = $data->orderBy('t.id','desc')
-            ->selectRaw($expression)
-            ->simplePaginate(10);
-        return $data;
+        $data = $data->orderBy('id','desc')->simplePaginate(10);
+        return $data??null;
     }
 
 
@@ -368,166 +306,11 @@ EOT;
      * @return \Illuminate\Contracts\Pagination\Paginator
      */
     public static function GetSquareGoodsList(){
-        $expression = <<<EOT
-                t.id,
-                t.uid,
-                u.nickname,
-                u.head_url,
-                t.type,
-                t.create_time,
-                t.topping,
-                t.turnprice,
-                t.isannex,
-                t.turnnum+t.turnnum_add as turn_num,
-                t.likenum+t.likenum_add as like_num,
-                t.discussnum+t.discussnum_add as discuss_num,
-                t.title,
-                t.remark,
-                t.number,
-                l.name as label_name,
-                t.address,
-                t.price,
-                t.firstprice,
-                t.fare,
-                t.peak
-EOT;
-        $data = DB::table('pro_mall_goods as t')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->where('t.isdelete',0)
-            ->where('t.issquare',1)
-            ->orderBy('t.id','desc')
-            ->selectRaw($expression)
+        $data = DB::table('view_goods_list')
+            ->where('is_plaza',1)
+            ->orderBy('id','desc')
             ->simplePaginate(10);
-        return $data;
-    }
-
-    /**
-     * 获取一条积分商品详情
-     * @param $id
-     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Query\Builder|null|object
-     */
-    public static function GetIntegralInfo($id){
-        $expression = <<<EOT
-            t.id,
-            t.uid,
-            u.nickname,
-            u.head_url,
-            t.type,
-            t.create_time,
-            t.turnprice,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            if(t.type=0,t.title,g.title) as title,
-            if(t.type=0,t.remark,g.remark) as remark,
-            if(t.type=0,t.number,g.number) as number,
-            if(t.type=0,l.name,a.name) as label_name,
-            if(t.type=0,t.address,g.address) as address,
-            if(t.type=0,t.price,g.price) as price,
-            if(t.type=0,t.fare,g.fare) as fare,
-            if(t.type=0,t.peak,g.peak) as peak,
-            if(t.type=0,if(t.isannex=1,t.id,0),if(g.isannex=1,g.id,0)) as file_id,
-            (select count(0) from pro_mall_order  where order_type=0 and initial_id = if(t.type=0,t.id,g.id)) as sell_num
-EOT;
-        return DB::table('pro_mall_integral_goods as t')
-            ->leftJoin('pro_mall_integral_goods as g','g.id','=','t.first_id')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->leftJoin('pro_sys_label as a','a.id','=','g.label')
-            ->where('t.id',$id)
-            ->selectRaw($expression)
-            ->first();
-    }
-
-    /**
-     * 获取积分商品列表
-     * @param $id
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Database\Query\Builder
-     */
-    public static function GetIntegralList($id){
-        $expression = <<<EOT
-            t.id,
-            t.uid,
-            u.nickname,
-            u.head_url,
-            t.type,
-            t.create_time,
-            t.topping,
-            t.turnprice,
-            t.isannex,
-            t.visible_uids,
-            t.access,
-            t.issquare,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            if(t.type=0,t.title,d.title) as title,
-            if(t.type=0,t.remark,d.remark) as remark,
-            if(t.type=0,t.number,d.number) as number,
-            if(t.type=0,l.name,a.name) as label_name,
-            if(t.type=0,t.address,d.address) as address,
-            if(t.type=0,t.price,d.price) as price,
-            if(t.type=0,t.fare,d.fare) as fare,
-            if(t.type=0,t.peak,d.peak) as peak,
-            d.id as init_id,
-            d.isannex as init_annex,
-            d.isdelete as init_status
-EOT;
-        $data = DB::table('pro_mall_integral_goods as t')
-            ->leftJoin('pro_mall_integral_goods as d','d.id','=','t.first_id')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->leftJoin('pro_sys_label as a','a.id','=','d.label')
-            ->where('t.isdelete',0);
-        if(is_array($id)){
-            $data = $data->whereIn('t.uid',$id);
-        }else{
-            $data = $data->where('t.uid',$id);
-        }
-        $data = $data->orderBy('t.id','desc')
-            ->selectRaw($expression)
-            ->simplePaginate(10);
-        return $data;
-    }
-
-
-    /**
-     * 广场积分商品列表
-     * @return \Illuminate\Contracts\Pagination\Paginator
-     */
-    public static function GetSquareIntegralList(){
-        $expression = <<<EOT
-                t.id,
-                t.uid,
-                u.nickname,
-                u.head_url,
-                t.type,
-                t.create_time,
-                t.topping,
-                t.turnprice,
-                t.isannex,
-                t.turnnum+t.turnnum_add as turn_num,
-                t.likenum+t.likenum_add as like_num,
-                t.discussnum+t.discussnum_add as discuss_num,
-                t.title,
-                t.remark,
-                t.number,
-                l.name as label_name,
-                t.address,
-                t.price,
-                t.fare,
-                t.peak
-EOT;
-        $data = DB::table('pro_mall_integral_goods as t')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->where('t.isdelete',0)
-            ->where('t.issquare',1)
-            ->orderBy('t.id','desc')
-            ->selectRaw($expression)
-            ->simplePaginate(10);
-        return $data;
+        return $data??null;
     }
 
     /**

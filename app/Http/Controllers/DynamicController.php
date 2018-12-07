@@ -98,8 +98,8 @@ class DynamicController extends Controller
                 $turn = Dynamic::find($dynamic->turn_id);
                 //保存转发记录
                 Turn::insert(
-                    ['release_type'=>ReleaseEnum::DYNAMIC,
-                    'release_id'=>$dynamic->turn_id,
+                    ['pro_type'=>ReleaseEnum::DYNAMIC,
+                    'pro_id'=>$dynamic->turn_id,
                     'uid'=>$dynamic->uid,
                     'issue_uid'=>$turn->uid,
                     'source'=>$source]);
