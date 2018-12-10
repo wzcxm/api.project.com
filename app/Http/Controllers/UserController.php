@@ -245,8 +245,8 @@ class UserController extends Controller
      */
     public function GetUserInfo(Request $request){
         try{
-            $user =  auth()->user();
-            $this->data['UserInfo'] = $user;
+            $uid =  auth()->id();
+            $this->data['UserInfo'] = Users::find($uid);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
