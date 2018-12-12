@@ -302,7 +302,7 @@ class DataComm
 
 
     /**
-     * 广场付费商品列表
+     * 广场商品列表
      * @return \Illuminate\Contracts\Pagination\Paginator
      */
     public static function GetSquareGoodsList(){
@@ -416,131 +416,21 @@ EOT;
             ->simplePaginate(10);
     }
 
-    /**
-     * 获取一条任务信息
-     * @param $id
-     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Query\Builder|null|object
-     */
-    public static function GetRewardInfo($id){
-        $expression = <<<EOT
-            t.id,
-            t.uid,
-            u.nickname,
-            u.head_url,
-            t.type,
-            t.front_id,
-            t.isannex,    
-            t.create_time,
-            t.title,
-            t.remark,
-            t.number,
-            t.bounty,
-            t.price,
-            t.hope_time,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            l.name as label_name,
-            t.address
-EOT;
-
-        return DB::table('pro_mall_reward as t')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->where('t.id',$id)
-            ->selectRaw($expression)
-            ->first();
-    }
 
     /**
      * 获取悬赏任务列表
-     * @param $id
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Database\Query\Builder
+     * @param $uid
+     * @param $type
+     * @param $page
+     * @param $uid_arr
+     * @return array
      */
-    public static function GetRewardList($id){
-        $expression = <<<EOT
-            t.id,
-            t.uid,
-            u.nickname,
-            u.head_url,
-            t.type,
-            t.topping,
-            t.create_time,
-            t.access,
-            t.isannex,
-            t.visible_uids,
-            t.issquare,
-            t.turnnum+t.turnnum_add as turn_num,
-            t.likenum+t.likenum_add as like_num,
-            t.discussnum+t.discussnum_add as discuss_num,
-            if(t.type=0,t.title,r.title) as title,
-            if(t.type=0,t.remark,r.remark) as remark,
-            if(t.type=0,t.bounty,r.bounty) as bounty,
-            if(t.type=0,t.number,r.number) as number,
-            if(t.type=0,t.hope_time,r.hope_time) as hope_time,
-            if(t.type=0,t.price,r.price) as price,
-            if(t.type=0,l.name,a.name) as label_name,
-            if(t.type=0,t.address,r.address) as address,
-            r.id as init_id,
-            r.isannex as init_annex,
-            r.uid as init_uid,
-            s.nickname as init_nick,
-            s.head_url as init_head
-EOT;
-        $data = DB::table('pro_mall_reward as t')
-            ->leftJoin('pro_mall_reward as r','r.id','=','t.front_id')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_mall_users as s','s.uid','=','r.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->leftJoin('pro_sys_label as a','a.id','=','r.label')
-            ->where('t.isdelete',0);
-        if(is_array($id)){
-            $data = $data->whereIn('t.uid',$id);
-        }else{
-            $data = $data->where('t.uid',$id);
-        }
-        $data = $data->orderBy('t.id','desc')
-            ->selectRaw($expression)
-            ->simplePaginate(10);
-        return $data;
+    public static function GetRewardList($uid,$type,$uid_arr,$page){
+        $data = DB::select('call pro_reward_list(?,?,?,?,?)',[$uid,$type,$uid_arr,($page-1)*10,10]);
+        return $data ?? null;
     }
 
-    /**
-     * 广场悬赏任务列表
-     * @return \Illuminate\Contracts\Pagination\Paginator
-     */
-    public static function GetSquareRewardList(){
-        $expression = <<<EOT
-                t.id,
-                t.uid,
-                u.nickname,
-                u.head_url,
-                t.type,
-                t.topping,
-                t.create_time,
-                t.isannex,
-                t.turnnum+t.turnnum_add as turn_num,
-                t.likenum+t.likenum_add as like_num,
-                t.discussnum+t.discussnum_add as discuss_num,
-                t.title,
-                t.remark,
-                t.bounty,
-                t.number,
-                t.hope_time,
-                t.price,
-                l.name as label_name,
-                t.address
-EOT;
-        $data = DB::table('pro_mall_reward as t')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->where('t.isdelete',0)
-            ->where('t.issquare',1)
-            ->orderBy('t.id','desc')
-            ->selectRaw($expression)
-            ->simplePaginate(10);
-        return $data;
-    }
+
 
     /**
      * 获取发布的悬赏任务

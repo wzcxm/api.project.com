@@ -121,25 +121,6 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/ToppingGoods','GoodsController@ToppingGoods');
     //删除付费商品
     $router->post('/DeleteGoods','GoodsController@DeleteGoods');
-    /**
-     * 积分商品
-     */
-    //发布/修改商品
-    $router->post('/EditIntegral','IntegralControllers@EditIntegral');
-    //转卖商品
-    $router->post('/TurnIntegral','IntegralControllers@TurnIntegral');
-    //获取商品详情
-    $router->get('/GetIntegral','IntegralControllers@GetIntegral');
-    //获取商品列表
-    $router->get('/GetIntegralList','IntegralControllers@GetIntegralList');
-    //获取圈子商品列表
-    $router->get('/GetCircleIntegral','IntegralControllers@GetCircleIntegral');
-    //广场积分商品
-    $router->get('/GetSquareIntegral','IntegralControllers@GetSquareIntegral');
-    //积分商品置顶或取消置顶
-    $router->post('/ToppingIntegral','IntegralControllers@ToppingIntegral');
-    //删除积分商品
-    $router->post('/DeleteIntegral','IntegralControllers@DeleteIntegral');
     //我发布的商品（付费商品/积分商品）
     $router->get('/GetMyPostedList','IntegralControllers@GetMyPostedList');
     //我代理的商品（付费商品/积分商品）
@@ -149,8 +130,6 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
      */
     //发布/修改悬赏任务
     $router->post('/EditReward','RewardController@EditReward');
-    //转发悬赏任务
-    $router->post('/TurnReward','RewardController@TurnReward');
     //获取悬赏任务详情
     $router->get('/GetReward','RewardController@GetReward');
     //获取悬赏任务列表
