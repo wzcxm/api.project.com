@@ -117,7 +117,7 @@ abstract class ErrorCode{
  * Class RewardOrderStatus
  * @package App\Lib
  */
-abstract class RewardOrderStatus{
+abstract class TaskStatus{
     /**
      * 申请
      */
@@ -127,17 +127,13 @@ abstract class RewardOrderStatus{
      */
     const ACCEPT = 1;
     /**
-     * 执行
+     * 提交
      */
     const COMPLY = 2;
     /**
      * 完工
      */
     const COMPLETED = 3;
-    /**
-     * 确认完成
-     */
-    const END = 4;
 }
 
 /**

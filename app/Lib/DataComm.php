@@ -86,27 +86,6 @@ class DataComm
 
 
     /**
-     * 保存业务的附件地址
-     * @param $release_type
-     * @param $release_id
-     * @param $files
-     */
-    public static function SaveFiles($release_type,$release_id,$files){
-        $file_urls = explode('|',$files);
-        $file_arr = array();
-        foreach ($file_urls as $url){
-            $file_arr[] = ['release_type'=>$release_type,'release_id'=>$release_id,'fileurl'=>$url];
-        }
-        //先清空
-        DB::table('pro_mall_files')
-            ->where('release_type',$release_type)
-            ->where('release_id',$release_id)
-            ->delete();
-        //保存文件地址
-        DB::table('pro_mall_files')->insert($file_arr);
-    }
-
-    /**
      * 自增点赞or评论or转发次数
      * @param $type
      * @param $id
@@ -149,22 +128,6 @@ class DataComm
         }
     }
 
-    /**
-     * 获取业务的文件地址，返回数组
-     * @param $type
-     * @param $id
-     * @return array
-     */
-    public static function  GetFiles($type,$id){
-        $files = DB::table('pro_mall_files')
-            ->where('release_type',$type)
-            ->where('release_id',$id)
-            ->get(['fileurl']);
-        if(count($files)>0){
-            return collect($files)->pluck('fileurl');
-        }
-        return null;
-    }
 
     /**
      * 获取用户的悬赏任务订单
@@ -186,15 +149,16 @@ class DataComm
     /**
      * 获取动态全部评论信息
      * @param $type
-     * @param $id_arr
+     * @param $id
      * @return \Illuminate\Support\Collection|null
      */
-    public static  function GetCommentAll($type,$id_arr){
+    public static  function GetThreeComment($type,$id){
         $data = DB::table('view_get_comment')
             ->where('pro_type',$type)
-            ->whereIn('pro_id',$id_arr)
+            ->where('pro_id',$id)
             ->select('id','nickname','comment')
             ->orderBy('create_time','desc')
+            ->limit(3)
             ->get();
         return $data??null;
     }
@@ -205,60 +169,31 @@ class DataComm
      * @param $type
      * @param $uid
      */
-    public static function SetComment(&$items,$type,$uid){
-
-        $id_arr = array_column($items, 'id');
-
+    public static function SetComment(&$items,$type){
         foreach ($items as &$data){
             //如果有插入商品或任务，添加商品或任务信息
             if(!empty($data['infix_id'])){
-                $data['infix'] = self::GetInfixInfo($data['infix_id'],$data['infix_type']);
+                $data['infix_info'] = self::GetInfixInfo($data['infix_id'],$data['infix_type']);
             }
-            //是否点赞
-            $data['islike'] = self::IsLike($type,$data['id'],$uid);
             //添加评论
-            $data['comment'] = self::GetCommentThree($type,$data['id']);
+            $data['comment'] = self::GetThreeComment($type,$data['id']);
         }
-    }
-
-    /**
-     * 获取一条动态详情
-     * @param $id
-     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Query\Builder|null|object
-     */
-    public static function GetDynamicInfo($id){
-        return DB::table('view_get_dynamic')
-            ->where('id',$id)
-            ->first();
     }
 
     /**
      * 获取动态列表
-     * @param $id
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Database\Query\Builder
+     * @param $uid
+     * @param $type
+     * @param $uid_arr
+     * @param $page
+     * @return array|null
      */
-    public static function GetDynamicList($id){
-        $data = DB::table('view_dynamic_list');
-        if(is_array($id)){
-            $data = $data->whereIn('uid',$id);
-        }else{
-            $data = $data->where('uid',$id);
-        }
-        $data = $data->orderBy('id','desc')->simplePaginate(10);
-        return $data??null;
+    public static function GetDynamicList($uid,$type,$uid_arr,$page){
+        $data = DB::select('call pro_dynamic_list(?,?,?,?,?)',[$uid,$type,$uid_arr,($page-1)*10,10]);
+        return $data ?? null;
     }
 
-    /**
-     * 广场动态列表
-     * @return \Illuminate\Contracts\Pagination\Paginator
-     */
-    public static function GetSquareDynamicList(){
-        $data = DB::table('view_dynamic_list')
-            ->where('is_plaza',1)
-            ->orderBy('id','desc')
-            ->simplePaginate(10);
-        return $data??null;
-    }
+
 
     /**
      * 获取动态插入的商品或任务信息
@@ -271,46 +206,18 @@ class DataComm
         return $infix??null;
     }
 
-
-
-    /**
-     * 获取一条付费商品详情
-     * @param $id
-     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Query\Builder|null|object
-     */
-    public static function GetGoodsInfo($id){
-        return DB::table('view_get_goods')
-            ->where('id',$id)
-            ->first();
-    }
-
     /**
      * 获取付费商品列表
-     * @param $id
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Database\Query\Builder
+     * @param $uid
+     * @param $type
+     * @param $uid_arr
+     * @param $page
+     * @return array|null
      */
-    public static function GetGoodsList($id){
-        $data = DB::table('view_goods_list');
-        if(is_array($id)){
-            $data = $data->whereIn('uid',$id);
-        }else{
-            $data = $data->where('uid',$id);
-        }
-        $data = $data->orderBy('id','desc')->simplePaginate(10);
-        return $data??null;
-    }
+    public static function GetGoodsList($uid,$type,$uid_arr,$page){
+        $data = DB::select('call pro_goods_list(?,?,?,?,?)',[$uid,$type,$uid_arr,($page-1)*10,10]);
+        return $data ?? null;
 
-
-    /**
-     * 广场商品列表
-     * @return \Illuminate\Contracts\Pagination\Paginator
-     */
-    public static function GetSquareGoodsList(){
-        $data = DB::table('view_goods_list')
-            ->where('is_plaza',1)
-            ->orderBy('id','desc')
-            ->simplePaginate(10);
-        return $data??null;
     }
 
     /**
@@ -487,23 +394,64 @@ EOT;
      * @param $id
      * @return \Illuminate\Support\Collection
      */
-    public static function GetRewardOrderList($id){
-        $expression = <<<EOT
-            t.id,
-            t.reward_id,
-            t.uid, 
-            u.nickname,
-            u.head_url,
-            t.create_time,
-            t.status
-EOT;
-        return DB::table('pro_mall_reward_order  as t')
-            ->leftJoin('pro_mall_users as u','u.uid','=','t.uid')
-            ->where('t.reward_id',$id)
-            ->where('t.isdelete',0)
-            ->selectRaw($expression)
-            ->orderBy('t.id','desc')
+    public static function GetTaskList($id){
+        return DB::table('view_task_list')
+            ->where('r_id',$id)
+            ->where('status',0)
+            ->orderBy('id','desc')
             ->get();
 
+    }
+
+    /**
+     * 获取悬赏任务采纳列表
+     * @param $id
+     * @return \Illuminate\Support\Collection
+     */
+    public static function GetTaskAdoptList($id){
+        return DB::table('view_task_list')
+            ->where('r_id',$id)
+            ->where('status','>',0)
+            ->orderBy('id','desc')
+            ->get();
+
+    }
+
+
+    /**
+     * 获取指定文件列表
+     * @param $ids
+     * @return mixed
+     */
+    public static function GetFilesList($ids){
+        $files = DB::table('pro_mall_task_files')
+            ->whereIn('task_id',$ids)
+            ->get();
+        return json_decode($files,true);
+    }
+    /**
+     * 任务申请列表添加图片地址
+     * @param $items
+     */
+    public static function SetFileUrl(&$items){
+        //获取文件地址
+        $id_arr = array_map(function ($item){
+                return $item['id'];
+        },$items);
+        $files = self::GetFilesList($id_arr);
+        //添加文件访问地址
+        foreach ($items as &$data){
+            $id = $data['id'];
+            if(!empty($id)){
+                $data['files'] = array_column(array_filter($files,function ($item) use($id){
+                    return $item['task_id'] == $id;
+                }),'file_url');
+            }
+            $data['chat'] = DB::table('view_task_chat_list')
+                ->where('task_id',$id)
+                ->orderBy('id','desc')
+                ->limit(1)->get();
+
+        }
     }
 }

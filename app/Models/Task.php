@@ -2,8 +2,8 @@
 /**
  * Created by PhpStorm.
  * User: Administrator
- * Date: 2018/10/18
- * Time: 10:31
+ * Date: 2018/12/13
+ * Time: 14:40
  */
 
 namespace App\Models;
@@ -11,18 +11,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Class Circle --圈子合集表（包含动态、付费商品、积分商品、悬赏任务）
- * @package App\Models
- */
-class Circle extends  Model
+class Task extends Model
 {
     /**
      * 与模型关联的数据表。
      *
      * @var string
      */
-    protected $table = 'pro_mall_circle';
+    protected $table = 'pro_mall_task';
     /**
      * 主键
      */

@@ -144,15 +144,20 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/DeleteReward','RewardController@DeleteReward');
     //申请任务
     $router->post('/ApplyReward','RewardController@ApplyReward');
+    //悬赏任务申请列表
+    $router->get('/GetTaskList','RewardController@GetTaskList');
+    //设置任务订单状态
+    $router->post('/SetTask','RewardController@SetTask');
+    //悬赏任务沟通
+    $router->post('/TaskChat','RewardController@TaskChat');
+    //任务采纳列表
+    $router->get('/GetTaskAdoptList','RewardController@GetTaskAdoptList');
+    //任务沟通列表列表
+    $router->get('/GetTaskChatList','RewardController@GetTaskChatList');
     //我发布的悬赏任务列表
     $router->get('/GetMyReward','RewardController@GetMyReward');
     //我申请的悬赏任务列表
     $router->get('/GetMyApplyReward','RewardController@GetMyApplyReward');
-    //悬赏任务申请列表
-    $router->get('/GetRewardOrderList','RewardController@GetRewardOrderList');
-    //设置任务订单状态
-    $router->post('/SetRewardOrder','RewardController@SetRewardOrder');
-    //撤销任务订单
-    $router->post('/CancelRewardOrder','RewardController@CancelRewardOrder');
+
 
 });

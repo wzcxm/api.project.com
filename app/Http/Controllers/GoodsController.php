@@ -9,7 +9,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Lib\AccessEnum;
 use App\Lib\DefaultEnum;
 use App\Lib\ErrorCode;
 use App\Lib\ReleaseEnum;
@@ -123,12 +122,13 @@ class GoodsController extends Controller
     public function GetGoods(Request $request){
         try{
             $id = $request->input('id',0);
+            $uid = auth()->id();
             if(empty($id)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = '商品id不能为空';
                 return $this->toJson();
             }
-            $goods = DataComm::GetGoodsInfo($id);
+            $goods = DB::select('call pro_get_goods(?,?)',[$id,$uid]);
             if(empty($goods)){
                 $this->code = ErrorCode::DATA_LOGIN;
                 $this->message = '数据不存在';
@@ -136,11 +136,8 @@ class GoodsController extends Controller
             }
             //商品信息
             $this->data['Goods'] = $goods;
-            //当前查看用户是否点赞
-            $uid = auth()->id();
-            $this->data['IsLike'] =DataComm::IsLike(ReleaseEnum::GOODS,$goods->id,$uid);
             //评论信息
-            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::GOODS,$goods->id);
+            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::GOODS,$id);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -158,20 +155,14 @@ class GoodsController extends Controller
         try{
             //$find_uid不为空时，表示查询该用户的动态列表
             $uid = auth()->id();
-
+            $page = $request->input('page',1);
             //获取我的普通动态数据，每次显示10条
-            $data_list = DataComm::GetGoodsList($uid);
-            $data_list = $data_list->items();
+            $data_list = DataComm::GetGoodsList($uid,1,'',$page);
             if(count($data_list)<=0){
                 $this->message = "最后一页了，没有数据了";
                 return $this->toJson();
             }
-            $items = json_decode(json_encode($data_list),true);
-            foreach ($items as &$item){
-                //是否点赞
-                $item['islike'] = DataComm::IsLike(ReleaseEnum::GOODS,$item['id'],$uid);
-            }
-            $this->data['GoodsList'] = $items;
+            $this->data['GoodsList'] = $data_list;
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -188,21 +179,17 @@ class GoodsController extends Controller
     public function GetCircleGoods(Request $request){
         try{
             $uid = auth()->id();
+            $page = $request->input('page',1);
             //获取所有还有id和自己的id
             $circle_ids = DataComm::GetFriendUid($uid);
+            $uid_arr = implode(",", $circle_ids);
             //获取圈子普通动态数据，每次显示10条
-            $data_list =DataComm::GetGoodsList($circle_ids);
-            $data_list = $data_list->items();
+            $data_list =DataComm::GetGoodsList($uid,3,$uid_arr,$page);
             if(count($data_list)<= 0){
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();
             }
-            $items = json_decode(json_encode($data_list),true);
-            foreach ($items as &$item){
-                //是否点赞
-                $item['islike'] = DataComm::IsLike(ReleaseEnum::GOODS,$item['id'],$uid);
-            }
-            $this->data['CircleGoods'] = $items;
+            $this->data['CircleGoods'] = $data_list;
             return $this->toJson();
 
         }catch (\Exception $e){
@@ -220,19 +207,14 @@ class GoodsController extends Controller
     public function GetSquareGoods(Request $request){
         try{
             $uid = auth()->id();
+            $page = $request->input('page',1);
             //获取广场付费商品列表，每次显示10条
-            $data_list = DataComm::GetSquareGoodsList();
-            $data_list = $data_list->items();
+            $data_list = DataComm::GetGoodsList($uid,2,'',$page);
             if(count($data_list)<= 0){
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();
             }
-            $items = json_decode(json_encode($data_list),true);
-            foreach ($items as &$item){
-                //是否点赞
-                $item['islike'] = DataComm::IsLike(ReleaseEnum::GOODS,$item['id'],$uid);
-            }
-            $this->data['SquareGoods'] = $items;
+            $this->data['SquareGoods'] = $data_list;
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;

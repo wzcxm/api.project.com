@@ -8,6 +8,8 @@
 
 namespace App\Lib;
 
+use App\Models\Reward;
+use App\Models\Task;
 use Illuminate\Support\Facades\Cache;
 class Common
 {
@@ -95,5 +97,29 @@ class Common
     }
 
 
+    /**
+     * 判断悬赏任务是否全部完成
+     * @param $rid
+     * @return bool
+     */
+    public static function Is_Completed($rid){
+        try{
+            $reward =  Reward::find($rid);
+            if(empty($reward))
+                return false;
+            if($reward->amount == 0){
+                $count = Task::where('r_id',$rid)->where('status','>',0)->where('status','<',3)->count();
+                if($count<=0){
+                    return true;
+                }else{
+                    return false;
+                }
+            }else{
+                return false;
+            }
+        }catch (\Exception $e){
+            return false;
+        }
+    }
 
 }

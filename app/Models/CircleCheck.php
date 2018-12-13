@@ -22,7 +22,7 @@ class CircleCheck extends  Model
      *
      * @var string
      */
-    protected $table = 'pro_mall_funds';
+    protected $table = 'pro_sys_circle_check';
     /**
      * 主键
      */

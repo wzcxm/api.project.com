@@ -2,27 +2,23 @@
 /**
  * Created by PhpStorm.
  * User: Administrator
- * Date: 2018/10/18
- * Time: 11:06
+ * Date: 2018/12/13
+ * Time: 15:41
  */
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Class RewardOrder -- 悬赏任务订单表
- * @package App\Models
- */
-class RewardOrder extends Model
+class TaskChat extends Model
 {
+
     /**
      * 与模型关联的数据表。
      *
      * @var string
      */
-    protected $table = 'pro_mall_reward_order';
+    protected $table = 'pro_mall_task_chat';
     /**
      * 主键
      */
