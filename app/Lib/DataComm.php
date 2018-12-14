@@ -221,51 +221,18 @@ class DataComm
     }
 
     /**
-     * 发布的商品列表（包含付费商品和积分商品）
+     * 我发布的商品列表（包含付费商品和积分商品）
      * @param $uid
-     * @return \Illuminate\Contracts\Pagination\Paginator
+     * @return \Illuminate\Support\Collection|null
      */
     public static function GetPostedList($uid){
-        //付费商品
-        $exp_goods = <<<EOT
-            t.id,
-            t.uid,
-            0 as type,
-            t.title,
-            t.number,
-            t.price,
-            t.firstprice,
-            t.fare,
-            l.name as label_name,
-            (select fileurl from pro_mall_files where release_type=2 and release_id=t.id limit 1) as file_url
-EOT;
-        $goods = DB::table('pro_mall_goods as t')
-            ->leftJoin('pro_sys_label as l','l.id','=','t.label')
-            ->where('t.type',0)
-            ->where('t.uid',$uid)
-            ->selectRaw($exp_goods);
-        //积分商品
-        $exp_integral = <<<EOT
-            i.id,
-            i.uid,
-            1 as type,
-            i.title,
-            i.number,
-            i.price,
-            0 as firstprice,
-            i.fare,
-            a.name as label_name,
-            (select fileurl from pro_mall_files where release_type=3 and release_id=i.id limit 1) as file_url
-EOT;
-        $integral = DB::table('pro_mall_integral_goods as i')
-            ->leftJoin('pro_sys_label as a','a.id','=','i.label')
-            ->where('i.type',0)
-            ->where('i.uid',$uid)
-            ->selectRaw($exp_integral)
-            ->unionAll($goods);
-        return $integral
-            ->orderBy('id','desc')
+
+        $goods = DB::table('pro_mall_goods')
+            ->where('type',0)
+            ->where('uid',$uid)
+            ->select('id', 'main_url', 'title', 'price', 'pay_type')
             ->simplePaginate(10);
+        return $goods ?? null;
     }
 
     /**
@@ -274,53 +241,14 @@ EOT;
      * @return \Illuminate\Contracts\Pagination\Paginator
      */
     public static function GetProxyList($uid){
-        //付费商品
-        $exp_goods = <<<EOT
-            t.id,
-            t.uid,
-            0 as type,
-            t.turnprice,
-            g.isdelete as init_status,
-            g.title,
-            g.number,
-            g.price,
-            g.firstprice,
-            g.fare,
-            l.name as label_name,
-            (select fileurl from pro_mall_files where release_type=2 and release_id=g.id limit 1) as file_url
-EOT;
         $goods = DB::table('pro_mall_goods as t')
-            ->leftJoin('pro_mall_goods as g','g.id','=','t.first_id')
-            ->leftJoin('pro_sys_label as l','l.id','=','g.label')
+            ->leftJoin('pro_mall_goods as g','g.id','=','t.init_id')
             ->where('t.type',1)
             ->where('t.uid',$uid)
-            ->selectRaw($exp_goods);
-        //积分商品
-        $exp_integral = <<<EOT
-            s.id,
-            s.uid,
-            1 as type,
-            s.turnprice,
-            i.isdelete as init_status,
-            i.title,
-            i.number,
-            i.price,
-            0 as firstprice,
-            i.fare,
-            a.name as label_name,
-            (select fileurl from pro_mall_files where release_type=3 and release_id=i.id limit 1) as file_url
-EOT;
-        $integral = DB::table('pro_mall_integral_goods as s')
-            ->leftJoin('pro_mall_integral_goods as i','i.id','=','s.first_id')
-            ->leftJoin('pro_sys_label as a','a.id','=','i.label')
-            ->where('s.type',1)
-            ->where('s.uid',$uid)
-            ->selectRaw($exp_integral)
-            ->unionAll($goods);
-
-        return $integral
-            ->orderBy('id','desc')
+            ->selectRaw('t.id,g.main_url, g.title,t.turn_price,g.pay_type,g.isdelete as is_fail')
+            ->orderBy('t.id','desc')
             ->simplePaginate(10);
+        return $goods?? null;
     }
 
 
@@ -345,22 +273,9 @@ EOT;
      * @return \Illuminate\Contracts\Pagination\Paginator
      */
     public static function GetMyReward($uid){
-        $expression = <<<EOT
-            t.id,
-            t.title,
-            t.number,
-            t.bounty,
-            t.hope_time,
-            t.create_time,
-            (select fileurl from pro_mall_files where release_type=4 and release_id=t.id limit 1) as file_url,
-            (select count(*) from pro_mall_reward_order where reward_id=t.id and isdelete=0 and status=0) as news
-EOT;
-        return DB::table('pro_mall_reward as t')
-            ->where('t.type',0)
-            ->where('t.isdelete',0)
-            ->where('t.uid',$uid)
-            ->selectRaw($expression)
-            ->orderBy('t.id','desc')
+        return DB::table('view_my_reward')
+            ->where('uid',$uid)
+            ->orderBy('id','desc')
             ->simplePaginate(10);
 
     }
@@ -370,22 +285,10 @@ EOT;
      * @param $uid
      * @return \Illuminate\Contracts\Pagination\Paginator
      */
-    public static function GetMyApplyReward($uid){
-        $expression = <<<EOT
-            o.id,
-            o.reward_id,
-            t.title,
-            t.bounty,
-            t.price,
-            t.create_time,
-            (select fileurl from pro_mall_files where release_type=4 and release_id=t.id limit 1) as file_url
-EOT;
-        return DB::table('pro_mall_reward_order as o')
-            ->leftJoin('pro_mall_reward as t','t.id','=','o.reward_id')
-            ->where('o.isdelete',0)
-            ->where('o.uid',$uid)
-            ->selectRaw($expression)
-            ->orderBy('o.id','desc')
+    public static function GetApplyReward($uid){
+        return DB::table('view_apply_reward')
+            ->where('uid',$uid)
+            ->orderBy('id','desc')
             ->simplePaginate(10);
     }
 

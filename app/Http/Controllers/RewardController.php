@@ -223,7 +223,16 @@ class RewardController extends Controller
                 $this->message = 'id不能为空';
                 return $this->toJson();
             }
-            //$reward = Reward::find($id);
+            $count = DB::table('pro_mall_task')
+                ->where('r_id',$id)
+                ->where('status','>',0)
+                ->where('status','<',3)
+                ->count();
+            if($count>0){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '该任务还未完成，不能删除！';
+                return $this->toJson();
+            }
 
             DB::table('pro_mall_reward')->where('id',$id)->update(['isdelete'=>1]);
             return $this->toJson();
@@ -526,10 +535,10 @@ class RewardController extends Controller
      * @param Request $request
      * @return string
      */
-    public function GetMyApplyReward(Request $request){
+    public function GetApplyReward(Request $request){
         try{
             $uid = auth()->id();
-            $reward = DataComm::GetMyApplyReward($uid);
+            $reward = DataComm::GetApplyReward($uid);
             $this->data['MyReward'] = $reward->items();
             return $this->toJson();
         }catch (\Exception $e){

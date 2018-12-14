@@ -115,16 +115,16 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetGoodsList','GoodsController@GetGoodsList');
     //获取圈子商品列表
     $router->get('/GetCircleGoods','GoodsController@GetCircleGoods');
-    //广场付费商品
+    //广场商品列表
     $router->get('/GetSquareGoods','GoodsController@GetSquareGoods');
-    //付费商品置顶或取消置顶
+    //商品置顶/取消置顶
     $router->post('/ToppingGoods','GoodsController@ToppingGoods');
-    //删除付费商品
+    //删除商品
     $router->post('/DeleteGoods','GoodsController@DeleteGoods');
-    //我发布的商品（付费商品/积分商品）
-    $router->get('/GetMyPostedList','IntegralControllers@GetMyPostedList');
-    //我代理的商品（付费商品/积分商品）
-    $router->get('/GetMyProxyList','IntegralControllers@GetMyProxyList');
+    //我发布的商品
+    $router->get('/GetMyPosted','GoodsController@GetMyPosted');
+    //我代理的商品
+    $router->get('/GetMyProxy','GoodsController@GetMyProxy');
     /**
      * 悬赏任务
      */
@@ -157,7 +157,7 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //我发布的悬赏任务列表
     $router->get('/GetMyReward','RewardController@GetMyReward');
     //我申请的悬赏任务列表
-    $router->get('/GetMyApplyReward','RewardController@GetMyApplyReward');
+    $router->get('/GetApplyReward','RewardController@GetApplyReward');
 
 
 });

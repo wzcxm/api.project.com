@@ -45,7 +45,7 @@ class Dynamic extends Model
      * 获取原创动态
      */
     public function frontDynamic(){
-        return $this->hasOne('App\Models\Dynamic','id','front_id');
+        return $this->hasOne('App\Models\Dynamic','id','init_id');
     }
 
     /**

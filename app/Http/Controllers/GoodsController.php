@@ -275,4 +275,40 @@ class GoodsController extends Controller
         }
     }
 
+    /**
+     * 获取我的商品-我发布的
+     * @param Request $request
+     * @return string
+     */
+    public function GetMyPosted(Request $request){
+        try{
+            $uid = auth()->id();
+            $data = DataComm::GetPostedList($uid);
+            $this->data['Posted'] = $data->items();
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+    /**
+     * 获取我的商品-我代理的
+     * @param Request $request
+     * @return string
+     */
+    public function GetMyProxy(Request $request){
+        try{
+            $uid = auth()->id();
+            $data = DataComm::GetProxyList($uid);
+            $this->data['Proxy'] = $data->items();
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
 }
