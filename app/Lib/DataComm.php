@@ -186,6 +186,7 @@ class DataComm
      * @param $type
      * @param $uid_arr
      * @param $page
+     * @param $find_str
      * @return array|null
      */
     public static function GetDynamicList($uid,$type,$uid_arr,$page){

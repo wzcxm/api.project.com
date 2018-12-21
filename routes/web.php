@@ -40,6 +40,12 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetUserWallet','UserController@GetUserWallet');
     //修改用户信息
     $router->post('/UpdateUser','UserController@UpdateUser');
+    //设置登录密码
+    $router->post('/SetLoginPwd','UserController@SetLoginPwd');
+    //设置支付密码
+    $router->post('/SetPayPwd','UserController@SetPayPwd');
+    //意见反馈
+    $router->post('/Feedback','UserController@Feedback');
 
     /**
      * 好友
