@@ -114,7 +114,7 @@ class RewardController extends Controller
             $uid = auth()->id();
             $page = $request->input('page',1);
             //获取我的任务数据，每次显示10条
-            $data_list = DataComm::GetRewardList($uid,1,'',$page);
+            $data_list = DataComm::GetRewardList($uid,1,'','',$page);
             if(count($data_list)<=0){
                 $this->message = "最后一页了，没有数据了";
                 return $this->toJson();
@@ -137,11 +137,12 @@ class RewardController extends Controller
         try{
             $uid = auth()->id();
             $page = $request->input('page',1);
+            $keyword = $request->input('keyword','');
             //获取所有还有id和自己的id
             $circle_ids = DataComm::GetFriendUid($uid);
             $uid_arr = implode(",", $circle_ids);
             //获取圈子普通动态数据，每次显示10条
-            $data_list =DataComm::GetRewardList($uid,3,$uid_arr,$page);
+            $data_list =DataComm::GetRewardList($uid,3,$uid_arr,$keyword,$page);
             if(count($data_list)<= 0){
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();
@@ -165,8 +166,9 @@ class RewardController extends Controller
         try{
             $uid = auth()->id();
             $page = $request->input('page',1);
+            $keyword = $request->input('keyword','');
             //获取广场悬赏任务列表，每次显示10条
-            $data_list = DataComm::GetRewardList($uid,2,'',$page);
+            $data_list = DataComm::GetRewardList($uid,2,'',$keyword,$page);
             if(count($data_list)<= 0){
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();

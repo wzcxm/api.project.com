@@ -189,8 +189,8 @@ class DataComm
      * @param $find_str
      * @return array|null
      */
-    public static function GetDynamicList($uid,$type,$uid_arr,$page){
-        $data = DB::select('call pro_dynamic_list(?,?,?,?,?)',[$uid,$type,$uid_arr,($page-1)*10,10]);
+    public static function GetDynamicList($uid,$type,$uid_arr,$find_str,$page){
+        $data = DB::select('call pro_dynamic_list(?,?,?,?,?,?)',[$uid,$type,$uid_arr,$find_str,($page-1)*10,10]);
         return $data ?? null;
     }
 
@@ -212,11 +212,12 @@ class DataComm
      * @param $uid
      * @param $type
      * @param $uid_arr
+     * @param $find_str
      * @param $page
      * @return array|null
      */
-    public static function GetGoodsList($uid,$type,$uid_arr,$page){
-        $data = DB::select('call pro_goods_list(?,?,?,?,?)',[$uid,$type,$uid_arr,($page-1)*10,10]);
+    public static function GetGoodsList($uid,$type,$uid_arr,$find_str,$page){
+        $data = DB::select('call pro_goods_list(?,?,?,?,?,?)',[$uid,$type,$uid_arr,$find_str,($page-1)*10,10]);
         return $data ?? null;
 
     }
@@ -259,10 +260,11 @@ class DataComm
      * @param $type
      * @param $page
      * @param $uid_arr
+     * @param $find_str
      * @return array
      */
-    public static function GetRewardList($uid,$type,$uid_arr,$page){
-        $data = DB::select('call pro_reward_list(?,?,?,?,?)',[$uid,$type,$uid_arr,($page-1)*10,10]);
+    public static function GetRewardList($uid,$type,$uid_arr,$find_str,$page){
+        $data = DB::select('call pro_reward_list(?,?,?,?,?,?)',[$uid,$type,$uid_arr,$find_str,($page-1)*10,10]);
         return $data ?? null;
     }
 
