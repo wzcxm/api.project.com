@@ -78,6 +78,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/Comment','CommentController@Comment');
     //删除评论
     $router->post('/DelComment','CommentController@DelComment');
+    //快递查询
+    $router->post('/FindExpress','CommentController@FindExpress');
+
     /**
      * 普通动态
      */

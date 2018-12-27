@@ -9,6 +9,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Lib\Common;
 use App\Lib\DataComm;
 use App\Lib\ErrorCode;
 use App\Lib\ReleaseEnum;
@@ -127,6 +128,31 @@ class CommentController extends Controller
             $this->message = $e->getMessage();
         }
         return $this->toJson();
+    }
+
+
+    /**
+     * 快递查询
+     * @param Request $request
+     * @return string
+     */
+    public function FindExpress(Request $request){
+        try{
+            $com = $request->input('com','');
+            $num = $request->input('num','');
+            if(empty($com) || empty($num)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '快递公司编码或快递单号不能为空';
+                return $this->toJson();
+            }
+            $data = Common::Find_Express($com,$num);
+            $this->data = $data;
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
     }
 
 }

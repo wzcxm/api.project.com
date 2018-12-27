@@ -42,7 +42,7 @@ class UserController extends Controller
             //生产6位数验证码
             $code = rand(100000,999999);
             //发送验证码短信
-
+            Common::Send_Message($tel,$code);
             //验证码保存到缓存，2分钟有效
             $expiresAt = Carbon::now() ->addMinutes(2);
             Cache::put($tel, $code, $expiresAt);

@@ -11,6 +11,8 @@ namespace App\Lib;
 use App\Models\Reward;
 use App\Models\Task;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
 class Common
 {
     /**
@@ -120,6 +122,78 @@ class Common
         }catch (\Exception $e){
             return false;
         }
+    }
+
+
+    /**
+     * 短信发送
+     * @param $tel
+     * @param $code
+     * @return mixed
+     */
+    public static function Send_Message($tel,$code){
+        //key
+        $key = 'yNUouIrq8028';
+        //用户id
+        $userid = '9d1964bcc5984ae2b8f522979279ecc3';
+        //请求地址
+        $url = 'http://apisms.kuaidi100.com:9502/sms/send.do';
+        //请求参数
+        $post_data = array();
+        $post_data['sign']=strtoupper(md5($key.$userid));
+        $post_data['userid']=$userid;
+        $post_data['seller']='猿玛科技';
+        $post_data['phone']=$tel;
+        $post_data['tid']=2392;
+        $post_data['content']="{'code':".$code."}";
+        //post
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+        $result = curl_exec($ch);
+        $data = str_replace("\"",'"',$result );
+        $data = json_decode($data,true);
+        //如果失败，写入日志
+        if($data['status']==0){
+            Log::error('短信错误：'.$data['msg']);
+        }
+        return $data;
+    }
+
+
+    /**
+     * 快递查询
+     * @param $com
+     * @param $num
+     * @return mixed
+     */
+    public static function Find_Express($com,$num){
+        //参数设置
+        $post_data = array();
+        $post_data["customer"] = 'B462DBF487B84144EBACAB0A0934ADC7';
+        $key= 'yNUouIrq8028' ;
+        $post_data["param"] = "{'com':'".$com."','num':'".$num."'}";
+
+        $url='http://poll.kuaidi100.com/poll/query.do';
+        $post_data["sign"] = md5($post_data["param"].$key.$post_data["customer"]);
+        $post_data["sign"] = strtoupper($post_data["sign"]);
+        $o="";
+        foreach ($post_data as $k=>$v)
+        {
+            $o.= "$k=".urlencode($v)."&";		//默认UTF-8编码格式
+        }
+        $post_data=substr($o,0,-1);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+        $result = curl_exec($ch);
+        $data = str_replace("\"",'"',$result );
+        $data = json_decode($data,true);
+        return $data;
     }
 
 }
