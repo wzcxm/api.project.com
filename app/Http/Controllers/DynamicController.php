@@ -37,7 +37,7 @@ class DynamicController extends Controller
             $title = $request->input('title',''); //标题
             $content = $request->input('content','');//内容
             $audio_url = $request->input('audio_url',''); //音频地址
-            $audio_length = $request->input('audio_length',''); //音频时长
+            $audio_length = $request->input('audio_length',0); //音频时长
             $is_plaza = $request->input('is_plaza',0); //是否发布到广场
             $address = $request->input('address',''); //所在地址
             $label_id = $request->input('label_id',0);//标签

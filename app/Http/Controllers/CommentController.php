@@ -155,4 +155,26 @@ class CommentController extends Controller
         }
     }
 
+    /**
+     * 获取热门搜索
+     * @param Request $request
+     * @return string
+     */
+    public function GetKeyWord(Request $request){
+        try{
+            $type = $request->input('type',1);
+            $data = DB::table('pro_mall_keyword')
+                ->where('type',$type)
+                ->orderBy('id','desc')
+                ->limit(10)
+                ->pluck('keyword');
+            $this->data = $data;
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
 }

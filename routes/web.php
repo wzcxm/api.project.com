@@ -80,7 +80,8 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/DelComment','CommentController@DelComment');
     //快递查询
     $router->post('/FindExpress','CommentController@FindExpress');
-
+    //热门搜索关键字
+    $router->get('/GetKeyWord','CommentController@GetKeyWord');
     /**
      * 普通动态
      */
