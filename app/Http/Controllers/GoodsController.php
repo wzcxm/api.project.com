@@ -153,11 +153,19 @@ class GoodsController extends Controller
      */
     public function GetGoodsList(Request $request){
         try{
-            //$find_uid不为空时，表示查询该用户的动态列表
             $uid = auth()->id();
-            $page = $request->input('page',1);
             //获取我的普通动态数据，每次显示10条
-            $data_list = DataComm::GetGoodsList($uid,1,'','',$page);
+            $param['uid'] = $uid;
+            $param['where'] = ' and t.uid='.$uid;
+            $param['keyword'] = '';
+            $param['pay_type'] = '';
+            $param['price_start'] = '';
+            $param['price_end'] = '';
+            $param['address'] = '';
+            $param['label_name'] = '';
+            $param['order_by'] = 't.id desc';
+            $param['page'] = $request->input('page',1);
+            $data_list = DataComm::GetGoodsList($param);
             if(count($data_list)<=0){
                 $this->message = "最后一页了，没有数据了";
                 return $this->toJson();
@@ -179,13 +187,23 @@ class GoodsController extends Controller
     public function GetCircleGoods(Request $request){
         try{
             $uid = auth()->id();
-            $page = $request->input('page',1);
-            $keyword = $request->input('keyword','');
             //获取所有还有id和自己的id
             $circle_ids = DataComm::GetFriendUid($uid);
             $uid_arr = implode(",", $circle_ids);
+            $param['uid'] = $uid;
+            $param['where'] = " and find_in_set(t.uid,'".$uid_arr."')";
+            $param['keyword'] = $request->input('keyword','');
+            $param['pay_type'] = $request->input('pay_type','');
+            $param['price_start'] = $request->input('price_start','');
+            $param['price_end'] = $request->input('price_end','');
+            $param['address'] = $request->input('address','');
+            $param['label_name'] = $request->input('label_name','');
+            $order_by ='t.'.$request->input('order_by','id ');
+            $sort = ' '.$request->input('sort',' desc');
+            $param['order_by'] = $order_by.$sort;
+            $param['page'] = $request->input('page',1);
             //获取圈子普通动态数据，每次显示10条
-            $data_list =DataComm::GetGoodsList($uid,3,$uid_arr,$keyword,$page);
+            $data_list =DataComm::GetGoodsList($param);
             if(count($data_list)<= 0){
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();
@@ -208,10 +226,20 @@ class GoodsController extends Controller
     public function GetSquareGoods(Request $request){
         try{
             $uid = auth()->id();
-            $page = $request->input('page',1);
-            $keyword = $request->input('keyword','');
+            $param['uid'] = $uid;
+            $param['where'] = " and t.is_plaza=1 ";
+            $param['keyword'] = $request->input('keyword','');
+            $param['pay_type'] = $request->input('pay_type','');
+            $param['price_start'] = $request->input('price_start','');
+            $param['price_end'] = $request->input('price_end','');
+            $param['address'] = $request->input('address','');
+            $param['label_name'] = $request->input('label_name','');
+            $order_by ='t.'.$request->input('order_by','id ');
+            $sort = ' '.$request->input('sort',' desc');
+            $param['order_by'] = $order_by.$sort;
+            $param['page'] = $request->input('page',1);
             //获取广场付费商品列表，每次显示10条
-            $data_list = DataComm::GetGoodsList($uid,2,'',$keyword,$page);
+            $data_list = DataComm::GetGoodsList($param);
             if(count($data_list)<= 0){
                 $this->message = "最后一页，没有数据了";
                 return $this->toJson();

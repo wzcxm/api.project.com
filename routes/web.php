@@ -82,6 +82,8 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/FindExpress','CommentController@FindExpress');
     //热门搜索关键字
     $router->get('/GetKeyWord','CommentController@GetKeyWord');
+    //热门标签
+    $router->get('/GetHotLabel','CommentController@GetHotLabel');
     /**
      * 普通动态
      */

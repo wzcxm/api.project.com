@@ -209,17 +209,52 @@ class DataComm
 
     /**
      * 获取付费商品列表
-     * @param $uid
-     * @param $type
-     * @param $uid_arr
-     * @param $find_str
-     * @param $page
+     * @param $param
      * @return array|null
      */
-    public static function GetGoodsList($uid,$type,$uid_arr,$find_str,$page){
-        $data = DB::select('call pro_goods_list(?,?,?,?,?,?)',[$uid,$type,$uid_arr,$find_str,($page-1)*10,10]);
+    public static function GetGoodsList($param){
+        $sql ='select  t.*,(select count(*) from pro_mall_like where pro_type=2 and pro_id=t.id and uid='.
+            $param['uid'].') as is_like from view_goods_list t where 1=1 ';
+        //查询数据类型
+        if(!empty($param['where'])){
+            $sql .= $param['where'];
+        }
+        //搜索关键字
+        if(!empty($param['keyword'])){
+            $sql .= " and t.title like '%".$param['keyword']."%' "  ;
+        }
+        //筛选
+        //支付方式
+        if($param['pay_type']!=''){
+            $sql .= " and t.pay_type=".$param['pay_type']  ;
+            //价格区间
+            if($param['price_start']!=''  && $param['price_end']!=''){
+                $sql .= ' and t.price between '.$param['price_start'].' and '.$param['price_end'] ;
+            }
+            //发货地址
+            if(!empty($param['address'])){
+                $sql .= " and t.address like '%".$param['address']."%'" ;
+            }
+            //标签
+            if(!empty($param['label_name'])){
+                $sql .= " and t.label_name = '".$param['label_name']."'" ;
+            }
+        }
+        //排序
+        $sql .= " order by " .$param['order_by'];
+        //分页
+        $sql .= ' LIMIT '.(($param['page']-1)*10).',10';
+        $data = DB::select($sql);
+        //保存关键字
+        if(!empty($param['keyword'])){
+            $count = DB::table('pro_mall_keyword')
+                ->where('keyword','like','%'.$param['keyword'].'%')
+                ->count();
+            if($count==0){
+                DB::table('pro_mall_keyword')->insert(['keyword'=>$param['keyword'],'type'=>2]);
+            }
+        }
         return $data ?? null;
-
     }
 
     /**
