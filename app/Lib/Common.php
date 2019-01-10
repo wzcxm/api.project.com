@@ -8,10 +8,13 @@
 
 namespace App\Lib;
 
+use App\Models\Goods;
 use App\Models\Reward;
 use App\Models\Task;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use phpDocumentor\Reflection\Types\Self_;
 
 class Common
 {
@@ -194,6 +197,71 @@ class Common
         $data = str_replace("\"",'"',$result );
         $data = json_decode($data,true);
         return $data;
+    }
+
+
+    /**
+     * 生成流水号
+     * @return string
+     */
+    public static function CreateCode(){
+        return date('ymd').substr(time(),-5).substr(microtime(),2,5);
+    }
+
+    /**
+     * 转卖订单，生成订单信息
+     * @param $arr
+     * @param $order
+     * @param $turn_id
+     */
+    public static function Order_Arr(&$arr,$order,$turn_id){
+        $front_Goods = Goods::find($turn_id);
+        if(!empty($front_Goods)){
+            $temp = [
+                'sn' => $order['sn'],
+                'type'=>$order['type'],
+                'g_id'=>$front_Goods->id,
+                'is_turn'=>$front_Goods->type,
+                'g_uid'=>$front_Goods->uid,
+                'num'=>$order['num'],
+                'g_amount'=>$order['g_amount'],
+                'fare'=>$order['fare'],
+                'total'=>$order['total'],
+                'purse'=>$order['purse'],
+                'pay_amount'=>$order['pay_amount'],
+                'address'=>$order['address'],
+                'buy_uid'=>$order['buy_uid'],
+                'pay_sn'=>$order['pay_sn']
+            ];
+            $arr[] = $temp;
+            if($front_Goods->type == DefaultEnum::YES){
+                self::Order_Arr($arr,$temp,$front_Goods->turn_id);
+            }
+        }
+    }
+
+
+    /**
+     * 获取商品各个类型数量
+     * @param $uid
+     * @param $status
+     * @param $type
+     * @return int
+     */
+    public static function GetOrderNum($uid,$status,$type){
+        if($type == 1){ //我卖出的商品，数量
+            return DB::table('view_order_list')
+                ->where('g_uid',$uid)
+                ->where('status',$status)
+                ->count();
+        }else{ //我买到的商品，数量
+            return DB::table('view_order_list')
+                ->where('buy_uid',$uid)
+                ->where('status',$status)
+                ->where('is_turn',0)
+                ->where('isdelete',0)
+                ->count();
+        }
     }
 
 }

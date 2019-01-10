@@ -48,7 +48,7 @@ class AddressController extends Controller
             $address_model->label = $label;
             DB::transaction(function() use($address_model){
                 //如果本条地址设为默认地址，则其他地址改为非默认地址
-                if($address_model->isdefault == DefaultEnum::YES){
+                if($address_model->default == DefaultEnum::YES){
                     Address::where('uid',$address_model->uid)->update(['default'=>0]);
                 }
                 $address_model->save();

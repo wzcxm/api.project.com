@@ -78,12 +78,7 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/Comment','CommentController@Comment');
     //删除评论
     $router->post('/DelComment','CommentController@DelComment');
-    //快递查询
-    $router->post('/FindExpress','CommentController@FindExpress');
-    //热门搜索关键字
-    $router->get('/GetKeyWord','CommentController@GetKeyWord');
-    //热门标签
-    $router->get('/GetHotLabel','CommentController@GetHotLabel');
+
     /**
      * 普通动态
      */
@@ -115,7 +110,7 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //获取物流地址列表
     $router->get('/GetAddressList','AddressController@GetAddressList');
     /**
-     * 付费商品
+     * 商品
      */
     //发布/修改商品
     $router->post('/EditGoods','GoodsController@EditGoods');
@@ -137,6 +132,10 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetMyPosted','GoodsController@GetMyPosted');
     //我代理的商品
     $router->get('/GetMyProxy','GoodsController@GetMyProxy');
+    //热门搜索关键字
+    $router->get('/GetKeyWord','GoodsController@GetKeyWord');
+    //热门标签
+    $router->get('/GetHotLabel','GoodsController@GetHotLabel');
     /**
      * 悬赏任务
      */
@@ -170,6 +169,22 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetMyReward','RewardController@GetMyReward');
     //我申请的悬赏任务列表
     $router->get('/GetApplyReward','RewardController@GetApplyReward');
-
+    /**
+     * 商品订单
+     */
+    //新增订单
+    $router->post('/AddOrder','OrderController@AddOrder');
+    //快递查询
+    $router->post('/FindExpress','OrderController@FindExpress');
+    //我卖出的订单列表
+    $router->get('/MySellOrder','OrderController@MySellOrder');
+    //我买到的订单列表
+    $router->get('/MyBuyOrder','OrderController@MyBuyOrder');
+    //删除订单
+    $router->post('/DelOrder','OrderController@DelOrder');
+    //获取订单详情
+    $router->get('/GetOrder','OrderController@GetOrder');
+    //发货，填写物流信息
+    $router->post('/Ship','OrderController@Ship');
 
 });

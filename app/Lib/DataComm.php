@@ -167,7 +167,6 @@ class DataComm
      * 给动态添加评论信息
      * @param $items
      * @param $type
-     * @param $uid
      */
     public static function SetComment(&$items,$type){
         foreach ($items as &$data){

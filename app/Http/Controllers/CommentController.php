@@ -131,70 +131,7 @@ class CommentController extends Controller
     }
 
 
-    /**
-     * 快递查询
-     * @param Request $request
-     * @return string
-     */
-    public function FindExpress(Request $request){
-        try{
-            $com = $request->input('com','');
-            $num = $request->input('num','');
-            if(empty($com) || empty($num)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = '快递公司编码或快递单号不能为空';
-                return $this->toJson();
-            }
-            $data = Common::Find_Express($com,$num);
-            $this->data = $data;
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-    }
-
-    /**
-     * 获取热门搜索
-     * @param Request $request
-     * @return string
-     */
-    public function GetKeyWord(Request $request){
-        try{
-            $type = $request->input('type',1);
-            $data = DB::table('pro_mall_keyword')
-                ->where('type',$type)
-                ->orderBy('id','desc')
-                ->limit(10)
-                ->pluck('keyword');
-            $this->data = $data;
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-    }
 
 
-    /**
-     * 获取热门标签
-     * @param Request $request
-     * @return string
-     */
-    public function GetHotLabel(Request $request){
-        try{
-            $data = DB::table('pro_sys_label')
-                ->where('ishot',1)
-                ->orderBy('id','desc')
-                ->pluck('name');
-            $this->data = $data;
-            return $this->toJson();
-        }catch (\Exception $e){
-            $this->code = ErrorCode::EXCEPTION;
-            $this->message = $e->getMessage();
-            return $this->toJson();
-        }
-    }
+
 }
