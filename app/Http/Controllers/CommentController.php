@@ -40,7 +40,7 @@ class CommentController extends Controller
                 $this->message = 'pro_type或pro_id或issue_uid不能为空';
             }else{
                 DB::transaction(function () use ($pro_type,$pro_id,$uid,$source,$issue_uid){
-                    $like = Like::where([['release_type',$pro_type],['release_id',$pro_id],['uid',$uid]])->first();
+                    $like = Like::where([['pro_type',$pro_type],['pro_id',$pro_id],['uid',$uid]])->first();
                     if(empty($like)){ //如果该条业务，没有点过赞，则增加点赞记录
                         //保存点赞记录
                         Like::insert(['pro_type'=>$pro_type, 'pro_id'=>$pro_id, 'uid'=>$uid, 'source'=>$source, 'issue_uid'=>$issue_uid]);
