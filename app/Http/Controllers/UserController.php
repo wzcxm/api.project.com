@@ -20,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 class UserController extends Controller
@@ -46,7 +47,7 @@ class UserController extends Controller
             //验证码保存到缓存，2分钟有效
             $expiresAt = Carbon::now() ->addMinutes(2);
             Cache::put($tel, $code, $expiresAt);
-            //Log::info($code);
+            Log::info($code);
             $this->data = $code;
             return $this->toJson();
         }catch (\Exception $e){

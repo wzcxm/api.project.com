@@ -186,5 +186,8 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetOrder','OrderController@GetOrder');
     //发货，填写物流信息
     $router->post('/Ship','OrderController@Ship');
-
+    //关闭订单
+    $router->post('/CloseOrder','OrderController@CloseOrder');
+    //确认收货
+    $router->post('/ConfirmOrder','OrderController@ConfirmOrder');
 });

@@ -212,10 +212,9 @@ class Common
      * 转卖订单，生成订单信息
      * @param $arr
      * @param $order
-     * @param $turn_id
      */
-    public static function Order_Arr(&$arr,$order,$turn_id){
-        $front_Goods = Goods::find($turn_id);
+    public static function Order_Arr(&$arr,$order){
+        $front_Goods = Goods::find($order->turn_id);
         if(!empty($front_Goods)){
             $temp = [
                 'sn' => $order['sn'],
@@ -231,11 +230,12 @@ class Common
                 'pay_amount'=>$order['pay_amount'],
                 'address'=>$order['address'],
                 'buy_uid'=>$order['buy_uid'],
-                'pay_sn'=>$order['pay_sn']
+                'pay_sn'=>$order['pay_sn'],
+                'turn_id'=>$front_Goods->turn_id
             ];
             $arr[] = $temp;
             if($front_Goods->type == DefaultEnum::YES){
-                self::Order_Arr($arr,$temp,$front_Goods->turn_id);
+                self::Order_Arr($arr,$temp);
             }
         }
     }
@@ -264,4 +264,24 @@ class Common
         }
     }
 
+
+    /**
+     * 保存资金流水记录
+     * @param $uid
+     * @param $type
+     * @param $amount
+     * @param $order_no
+     * @param $title
+     * @param $in_out
+     */
+    public static function SaveFunds($uid,$type,$amount,$order_no,$title,$in_out){
+        DB::table('pro_mall_funds')->insert([
+            'uid'=>$uid,
+            'type'=>$type,
+            'amount'=>$amount,
+            'order_no'=>$order_no,
+            'title'=>$title,
+            'in_out'=>$in_out
+        ]);
+    }
 }

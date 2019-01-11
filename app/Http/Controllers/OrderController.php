@@ -33,7 +33,7 @@ class OrderController extends Controller
             $is_turn = $request->input('is_turn',0); //是否转卖商品：0-原创；1-转卖
             $g_id = $request->input('g_id',0); //商品id
             $g_uid = $request->input('g_uid',0); //商品发布人uid
-            $turn_id = $request->input('turn_id',0); //转发商品id
+            $turn_id = $request->input('turn_id',0); //转卖商品id
             $num = $request->input('num',0); //购买数量
             $address = $request->input('address',0); //收货地址id
             $g_amount = $request->input('g_amount',0); //商品总价/积分
@@ -57,13 +57,14 @@ class OrderController extends Controller
                 'pay_amount'=>$pay_amount,
                 'address'=>$address,
                 'buy_uid'=>$buy_uid,
-                'pay_sn'=>$pay_sn
+                'pay_sn'=>$pay_sn,
+                'turn_id'=>$turn_id
             ];
             //订单信息
             $arr[] = $order;
             //如果是转买订单，则给每级转发人生成订单
             if($is_turn == DefaultEnum::YES){
-                Common::Order_Arr($arr,$order,$turn_id);
+                Common::Order_Arr($arr,$order);
             }
             //保存订单信息
             DB::table('pro_mall_order')->insert($arr);
@@ -239,16 +240,73 @@ class OrderController extends Controller
             $express = $request->input('express',0);
             $firm = $request->input('firm','');
             $firm_code = $request->input('firm_code',0);
-            if(empty($id)){
+            $order = Order::find($id);
+            if(empty($order)){
                 $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = '订单id不能为空';
+                $this->message = '订单id错误';
                 return $this->toJson();
             }
+            //修改订单状态为已发货
+            DB::table('pro_mall_order')
+                ->where('sn',$order->sn)
+                ->update(['express'=>$express,'firm'=>$firm,'firm_code'=>$firm_code,'status'=>2]);
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+    /**
+     * 关闭订单
+     * @param Request $request
+     * @return string
+     */
+    public function CloseOrder(Request $request){
+        try{
+            $id = $request->input('id',0);
             $order = Order::find($id);
-            $order->express = $express;
-            $order->firm = $firm;
-            $order->firm_code = $firm_code;
-            $order->save();
+            if(empty($order)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '订单id错误';
+                return $this->toJson();
+            }
+            //修改订单状态为关闭
+            DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>4]);
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+    /**
+     * 确认收货
+     * @param Request $request
+     * @return string
+     */
+    public function ConfirmOrder(Request $request){
+        try{
+            $id = $request->input('id',0);
+            $order = Order::find($id);
+            if(empty($order)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '订单id错误';
+                return $this->toJson();
+            }
+            DB::transaction(function()use($order){
+                //修改订单状态为完成
+                DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>3]);
+                //商家增加货款
+                DB::table('pro_mall_wallet')->where('uid',$order->g_uid)->increment('amount', $order->total);
+                //积分商品，给商家增加积分
+                if($order->type==1){
+                    DB::table('pro_mall_users')->where('uid',$order->g_uid)->increment('integral', $order->g_amount);
+                }
+                //增加资金流水记录
+            });
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
