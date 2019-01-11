@@ -69,14 +69,14 @@ class CommentController extends Controller
     public function Comment(Request $request){
         try{
             $uid =  auth()->id();
-            $pro_type = $request->input('pro_type','');
-            $pro_id = $request->input('pro_id','');
-            $comment = $request->input('comment','');
+            $pro_type = $request->input('pro_type',0);
+            $pro_id = $request->input('pro_id',0);
+            $comm = $request->input('comment','');
             $reply_id = $request->input('reply_id',0);
             $source = $request->input('source',0);
             $img_url = $request->input('files','');
             $issue_uid = $request->input('issue_uid',0);
-            if(empty($pro_type) ||  empty($comment) || empty($pro_id) || empty($issue_uid)){
+            if(empty($pro_type) ||  empty($comm) || empty($pro_id) || empty($issue_uid)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = 'comment、pro_type、pro_id、issue_uid不能为空';
             }else{
@@ -86,7 +86,7 @@ class CommentController extends Controller
                 $comment->pro_id = $pro_id;
                 $comment->issue_uid = $issue_uid;
                 $comment->uid = $uid;
-                $comment->comment = $comment;
+                $comment->comment = $comm;
                 $comment->reply_id = $reply_id;
                 $comment->source = $source;
                 $comment->img_url = $img_url;
