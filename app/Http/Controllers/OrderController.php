@@ -11,7 +11,9 @@ namespace App\Http\Controllers;
 
 use App\Lib\Common;
 use App\Lib\DefaultEnum;
+use App\Lib\FundsEnum;
 use App\Models\Order;
+use function foo\func;
 use Illuminate\Http\Request;
 use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
@@ -66,8 +68,14 @@ class OrderController extends Controller
             if($is_turn == DefaultEnum::YES){
                 Common::Order_Arr($arr,$order);
             }
-            //保存订单信息
-            DB::table('pro_mall_order')->insert($arr);
+            DB::transaction(function()use($arr,$sn,$buy_uid,$total,$g_id){
+                //保存订单信息
+                DB::table('pro_mall_order')->insert($arr);
+                //保存资金流水记录
+                if($total>0){
+                    Common::SaveFunds($buy_uid, FundsEnum::BUY, $total, $sn, '购买商品', 1,$g_id);
+                }
+            });
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -272,8 +280,17 @@ class OrderController extends Controller
                 $this->message = '订单id错误';
                 return $this->toJson();
             }
-            //修改订单状态为关闭
-            DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>4]);
+            DB::transaction(function()use($order){
+                //修改订单状态为关闭
+                DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>4]);
+                //退回订单金额
+                if($order->total>0){
+                    DB::table('pro_mall_wallet')->where('uid',$order->buy_uid)->increment('amount', $order->total);
+                    //保存资金流水记录
+                    Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '退回商品金额', 0,$order->id);
+                }
+            });
+
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -305,7 +322,10 @@ class OrderController extends Controller
                 if($order->type==1){
                     DB::table('pro_mall_users')->where('uid',$order->g_uid)->increment('integral', $order->g_amount);
                 }
-                //增加资金流水记录
+                //保存资金流水记录
+                if($order->total>0){
+                    Common::SaveFunds($order->g_uid, FundsEnum::SELL, $order->total, $order->sn, '卖出商品', 0,$order->id);
+                }
             });
             return $this->toJson();
         }catch (\Exception $e){

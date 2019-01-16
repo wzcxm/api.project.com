@@ -273,15 +273,17 @@ class Common
      * @param $order_no
      * @param $title
      * @param $in_out
+     * @param $pro_id
      */
-    public static function SaveFunds($uid,$type,$amount,$order_no,$title,$in_out){
+    public static function SaveFunds($uid,$type,$amount,$order_no,$title,$in_out,$pro_id){
         DB::table('pro_mall_funds')->insert([
             'uid'=>$uid,
             'type'=>$type,
             'amount'=>$amount,
             'order_no'=>$order_no,
             'title'=>$title,
-            'in_out'=>$in_out
+            'in_out'=>$in_out,
+            'pro_id'=>$pro_id
         ]);
     }
 }

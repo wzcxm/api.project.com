@@ -77,7 +77,8 @@ class RewardController extends Controller
                         $reward->total,
                         $reward->id,
                         '发布任务：'.$reward->title,
-                        1);
+                        1,
+                        $reward->id);
                 }
             });
             return $this->toJson();
@@ -259,7 +260,7 @@ class RewardController extends Controller
                 if($ret_money > 0){
                     DB::table('pro_mall_wallet')->where('uid',$reward->uid)->increment('amount', $ret_money);
                     //保存资金流水记录
-                    Common::SaveFunds($reward->uid, FundsEnum::RELEASE, $ret_money, '', '退回赏金：'.$reward->title, 0);
+                    Common::SaveFunds($reward->uid, FundsEnum::RELEASE, $ret_money, '', '退回赏金：'.$reward->title, 0,$id);
                 }
             });
             return $this->toJson();
@@ -291,6 +292,12 @@ class RewardController extends Controller
             if($count>0){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = '您已经申请过该任务，不能重复申请！';
+                return $this->toJson();
+            }
+            $reward = Reward::find($r_id);
+            if(!empty($reward) && $reward->status<=2){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '该任务已完成或者已过期！';
                 return $this->toJson();
             }
             $task = new Task();
@@ -398,7 +405,7 @@ class RewardController extends Controller
                         //支付佣金
                         DB::table('pro_mall_wallet')->where('uid',$task->uid)->increment('amount', $task->price);
                         //保存资金流水记录
-                        Common::SaveFunds($task->uid, FundsEnum::FINISH, $task->price, $task->sn, '完成任务赏金', 0);
+                        Common::SaveFunds($task->uid, FundsEnum::FINISH, $task->price, $task->sn, '完成任务赏金', 0,$task->id);
                         //回写，任务已付赏金数量
                         DB::table('pro_mall_reward')->where('id',$task->r_id)->increment('surplus', $task->price);
                         //所有订单完成时，悬赏任务改为完成状态

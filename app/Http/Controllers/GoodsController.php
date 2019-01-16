@@ -123,15 +123,11 @@ class GoodsController extends Controller
         try{
             $id = $request->input('id',0);
             $uid = auth()->id();
-            if(empty($id)){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = '商品id不能为空';
-                return $this->toJson();
-            }
+
             $goods = DB::select('call pro_get_goods(?,?)',[$id,$uid]);
             if(empty($goods)){
                 $this->code = ErrorCode::DATA_LOGIN;
-                $this->message = '数据不存在';
+                $this->message = '商品id错误';
                 return $this->toJson();
             }
             //商品信息
