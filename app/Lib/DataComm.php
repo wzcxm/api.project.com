@@ -266,6 +266,7 @@ class DataComm
         $goods = DB::table('pro_mall_goods')
             ->where('type',0)
             ->where('uid',$uid)
+            ->where('isdelete',0)
             ->select('id', 'main_url', 'title', 'price', 'pay_type')
             ->simplePaginate(10);
         return $goods ?? null;
@@ -281,6 +282,7 @@ class DataComm
             ->leftJoin('pro_mall_goods as g','g.id','=','t.init_id')
             ->where('t.type',1)
             ->where('t.uid',$uid)
+            ->where('t.isdelete',0)
             ->selectRaw('t.id,g.main_url, g.title,t.turn_price,g.pay_type,g.isdelete as is_fail')
             ->orderBy('t.id','desc')
             ->simplePaginate(10);
