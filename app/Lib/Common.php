@@ -286,4 +286,22 @@ class Common
             'pro_id'=>$pro_id
         ]);
     }
+
+
+    /**
+     * 随机生成汉字
+     * @param $num
+     * @return string
+     */
+    public static function GetNickName($num)  // $num为生成汉字的数量
+    {
+        $b = '';
+        for ($i=0; $i<$num; $i++) {
+            // 使用chr()函数拼接双字节汉字，前一个chr()为高位字节，后一个为低位字节
+            $a = chr(mt_rand(0xB0,0xD0)).chr(mt_rand(0xA1, 0xF0));
+            // 转码
+            $b .= iconv('GB2312', 'UTF-8', $a);
+        }
+        return $b;
+    }
 }

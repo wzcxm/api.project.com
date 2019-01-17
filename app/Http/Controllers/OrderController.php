@@ -257,7 +257,7 @@ class OrderController extends Controller
             //修改订单状态为已发货
             DB::table('pro_mall_order')
                 ->where('sn',$order->sn)
-                ->update(['express'=>$express,'firm'=>$firm,'firm_code'=>$firm_code,'status'=>2]);
+                ->update(['express'=>$express,'firm'=>$firm,'firm_code'=>$firm_code,'hair_time'=>date("Y-m-d H:i:s"),'status'=>2]);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -315,7 +315,7 @@ class OrderController extends Controller
             }
             DB::transaction(function()use($order){
                 //修改订单状态为完成
-                DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>3]);
+                DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>3,'finish_time'=>date("Y-m-d H:i:s")]);
                 //商家增加货款
                 DB::table('pro_mall_wallet')->where('uid',$order->g_uid)->increment('amount', $order->total);
                 //积分商品，给商家增加积分

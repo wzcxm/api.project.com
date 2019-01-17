@@ -109,6 +109,8 @@ class UserController extends Controller
             }
             //创建用户信息
             $user = new Users();
+            $user->head_url = 'http://'.$_SERVER['HTTP_HOST'].'/head/default.png';
+            $user->nickname = 'User_'.str_random(5);
             $user->telephone = $tel;
             $user->pwd = md5($pwd);
             $user->source = $source;
