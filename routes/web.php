@@ -28,6 +28,16 @@ $router->post('/UpdatePwd','UserController@UpdatePwd');
 //登录
 $router->get('/Login','UserController@Login');
 
+/**
+ * 广场动态、商品、任务游客可浏览，不需要加入token检查
+ */
+//广场动态列表
+$router->get('/GetSquareDynamic','DynamicController@GetSquareDynamic');
+//广场商品列表
+$router->get('/GetSquareGoods','GoodsController@GetSquareGoods');
+//广场悬赏任务
+$router->get('/GetSquareReward','RewardController@GetSquareReward');
+
 $router->group(['middleware' => 'checktoken'],function() use ($router){
     /**
      * 用户
@@ -92,8 +102,6 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetDynamicList','DynamicController@GetDynamicList');
     //圈子普通动态
     $router->get('/GetCircleDynamic','DynamicController@GetCircleDynamic');
-    //广场动态
-    $router->get('/GetSquareDynamic','DynamicController@GetSquareDynamic');
     //普通动态置顶或取消置顶
     $router->post('/ToppingDynamic','DynamicController@ToppingDynamic');
     //删除动态
@@ -122,8 +130,6 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetGoodsList','GoodsController@GetGoodsList');
     //获取圈子商品列表
     $router->get('/GetCircleGoods','GoodsController@GetCircleGoods');
-    //广场商品列表
-    $router->get('/GetSquareGoods','GoodsController@GetSquareGoods');
     //商品置顶/取消置顶
     $router->post('/ToppingGoods','GoodsController@ToppingGoods');
     //删除商品
@@ -147,8 +153,6 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetRewardList','RewardController@GetRewardList');
     //获取圈子悬赏任务列表
     $router->get('/GetCircleReward','RewardController@GetCircleReward');
-    //广场悬赏任务
-    $router->get('/GetSquareReward','RewardController@GetSquareReward');
     //任务置顶或取消置顶
     $router->post('/ToppingReward','RewardController@ToppingReward');
     //删除任务
