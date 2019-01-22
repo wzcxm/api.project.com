@@ -133,7 +133,7 @@ class GoodsController extends Controller
             //商品信息
             $this->data['Goods'] = $goods;
             //评论信息
-            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::GOODS,$id);
+            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::GOODS,$id,$uid);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;

@@ -74,14 +74,17 @@ class DataComm
      * 获取业务的评论信息列表
      * @param $type
      * @param $id
+     * @param $uid
      * @return array|\Illuminate\Support\Collection
      */
-    public static function GetComment($type,$id){
-        return DB::table('view_get_comment')
-            ->where('pro_type',$type)
-            ->where('pro_id',$id)
-            ->select('id','uid','nickname','head_url','comment','img_url','likes','create_time','reply_id')
-            ->get();
+    public static function GetComment($type,$id,$uid){
+//        return DB::table('view_get_comment')
+//            ->where('pro_type',$type)
+//            ->where('pro_id',$id)
+//            ->select('id','uid','nickname','head_url','comment','img_url','likes','create_time','reply_id')
+//            ->get();
+        $data = DB::select('call pro_get_comment(?,?,?)',[$type,$id,$uid]);
+        return $data??null;
     }
 
 

@@ -143,7 +143,7 @@ class DynamicController extends Controller
             //动态信息/转发动态信息
             $this->data['Dynamic'] = $dynamic;
             //评论信息
-            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::DYNAMIC,$id);
+            $this->data['Comment'] = DataComm::GetComment(ReleaseEnum::DYNAMIC,$id,$uid);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
