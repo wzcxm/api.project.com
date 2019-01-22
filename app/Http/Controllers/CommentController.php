@@ -31,8 +31,8 @@ class CommentController extends Controller
     public function  Like(Request $request){
         try{
             $uid =  auth()->id();
-            $pro_type = $request->input('pro_type','');
-            $pro_id = $request->input('pro_id','');
+            $pro_type = $request->input('pro_type',0);
+            $pro_id = $request->input('pro_id',0);
             $issue_uid = $request->input('issue_uid',0);
             $source = $request->input('source',0);
             if(empty($pro_type) || empty($pro_id) || empty($issue_uid)){
@@ -40,15 +40,20 @@ class CommentController extends Controller
                 $this->message = 'pro_type或pro_id或issue_uid不能为空';
             }else{
                 DB::transaction(function () use ($pro_type,$pro_id,$uid,$source,$issue_uid){
-                    $like = Like::where([['pro_type',$pro_type],['pro_id',$pro_id],['uid',$uid]])->first();
+                    $like = DB::table('pro_mall_like')
+                        ->where('pro_type',$pro_type)
+                        ->where('pro_id',$pro_id)
+                        ->where('uid',$uid)
+                        ->first();
                     if(empty($like)){ //如果该条业务，没有点过赞，则增加点赞记录
                         //保存点赞记录
-                        Like::insert(['pro_type'=>$pro_type, 'pro_id'=>$pro_id, 'uid'=>$uid, 'source'=>$source, 'issue_uid'=>$issue_uid]);
+                        DB::table('pro_mall_like')
+                            ->insert(['pro_type'=>$pro_type, 'pro_id'=>$pro_id, 'uid'=>$uid, 'source'=>$source, 'issue_uid'=>$issue_uid]);
                         //该条业务增加一次点赞数量
                         DataComm::Increase($pro_type,$pro_id,'likes');
                     }else{ //如果已经点赞，则表示取消点赞，则删除点赞记录
                         //删除点赞记录
-                        $like->delete();
+                        DB::table('pro_mall_like')->where('id',$like->id)->delete();
                         //该条业务减少一次点赞数量
                         DataComm::Decrement($pro_type,$pro_id,'likes');
                     }
