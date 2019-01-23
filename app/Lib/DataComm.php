@@ -266,11 +266,11 @@ class DataComm
      */
     public static function GetPostedList($uid){
 
-        $goods = DB::table('pro_mall_goods')
+        $goods = DB::table('view_goods_list')
             ->where('type',0)
             ->where('uid',$uid)
-            ->where('isdelete',0)
-            ->select('id', 'main_url', 'title', 'price', 'pay_type')
+            ->select('id', 'main_url', 'title', 'price', 'pay_type','likes','turns','discuss')
+            ->orderBy('id','desc')
             ->simplePaginate(10);
         return $goods ?? null;
     }
