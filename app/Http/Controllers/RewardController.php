@@ -375,6 +375,11 @@ class RewardController extends Controller
                 switch ($status){
                     case TaskStatus::ACCEPT:   //采纳
                         $task = Task::find($id);
+                        if(empty($task)){
+                            $this->code = ErrorCode::PARAM_ERROR;
+                            $this->message = 'id错误！';
+                            return $this->toJson();
+                        }
                         $reward = Reward::find($task->r_id);
                         if($reward->amount<=0){
                             $this->code = ErrorCode::PARAM_ERROR;
@@ -393,12 +398,22 @@ class RewardController extends Controller
                         break;
                     case TaskStatus::COMPLY:   //提交
                         $task = Task::find($id);
+                        if(empty($task)){
+                            $this->code = ErrorCode::PARAM_ERROR;
+                            $this->message = 'id错误！';
+                            return $this->toJson();
+                        }
                         $task->status = TaskStatus::COMPLY;
                         $task->submit_time = date("Y-m-d H:i:s");
                         $task->save();
                         break;
                     case TaskStatus::COMPLETED:  //完成
                         $task = Task::find($id);
+                        if(empty($task)){
+                            $this->code = ErrorCode::PARAM_ERROR;
+                            $this->message = 'id错误！';
+                            return $this->toJson();
+                        }
                         $task->status = TaskStatus::COMPLETED;
                         $task->end_time = date("Y-m-d H:i:s");
                         $task->save();
