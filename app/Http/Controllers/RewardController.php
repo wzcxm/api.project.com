@@ -296,7 +296,7 @@ class RewardController extends Controller
                 return $this->toJson();
             }
             $reward = Reward::find($r_id);
-            if(!empty($reward) && $reward->status<=2){
+            if(!empty($reward) && $reward->status>=2){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = '该任务已完成或者已过期！';
                 return $this->toJson();
