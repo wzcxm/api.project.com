@@ -73,11 +73,11 @@ class UserController extends Controller
                 return $this->toJson();
             }
             //校验验证码
-            if(!Common::CheckCode($tel,$code)){
-                $this->code = ErrorCode::PARAM_ERROR;;
-                $this->message = "验证码错误，或已失效！";
-                return $this->toJson();
-            }
+//            if(!Common::CheckCode($tel,$code)){
+//                $this->code = ErrorCode::PARAM_ERROR;;
+//                $this->message = "验证码错误，或已失效！";
+//                return $this->toJson();
+//            }
             //校验是否被注册
             if(DataComm::CheckPhone($tel)){
                 $this->code = ErrorCode::PARAM_ERROR;;

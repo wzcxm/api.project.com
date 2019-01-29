@@ -327,6 +327,7 @@ class OrderController extends Controller
                     Common::SaveFunds($order->g_uid, FundsEnum::SELL, $order->total, $order->sn, '卖出商品', 0,$order->id);
                 }
             });
+
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
