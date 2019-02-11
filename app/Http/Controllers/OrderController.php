@@ -30,52 +30,29 @@ class OrderController extends Controller
      */
     public function AddOrder(Request $request){
         try{
-            $buy_uid = auth()->id();
-            $type = $request->input('type',0); //商品类型：0-付费；1-积分
-            $is_turn = $request->input('is_turn',0); //是否转卖商品：0-原创；1-转卖
-            $g_id = $request->input('g_id',0); //商品id
-            $g_uid = $request->input('g_uid',0); //商品发布人uid
-            $turn_id = $request->input('turn_id',0); //转卖商品id
-            $num = $request->input('num',0); //购买数量
-            $address = $request->input('address',0); //收货地址id
-            $g_amount = $request->input('g_amount',0); //商品总价/积分
-            $fare = $request->input('fare',0); //运费
-            $total = $request->input('total',0); //订单总金额
-            $purse = $request->input('purse',0); //钱包支付金额
-            $pay_amount = $request->input('pay_amount',0); //微信/支付宝支付金额
-            $pay_sn = $request->input('pay_sn',''); //微信/支付宝支付流水号
-            $sn = Common::CreateCode();
-            $order = [
-                'sn' => $sn,
-                'type'=>$type,
-                'g_id'=>$g_id,
-                'is_turn'=>$is_turn,
-                'g_uid'=>$g_uid,
-                'num'=>$num,
-                'g_amount'=>$g_amount,
-                'fare'=>$fare,
-                'total'=>$total,
-                'purse'=>$purse,
-                'pay_amount'=>$pay_amount,
-                'address'=>$address,
-                'buy_uid'=>$buy_uid,
-                'pay_sn'=>$pay_sn,
-                'turn_id'=>$turn_id
-            ];
-            //订单信息
-            $arr[] = $order;
-            //如果是转买订单，则给每级转发人生成订单
-            if($is_turn == DefaultEnum::YES){
-                Common::Order_Arr($arr,$order);
-            }
-            DB::transaction(function()use($arr,$sn,$buy_uid,$total,$g_id){
+            $order =  new Order();
+            $order->sn = Common::CreateCode();
+            $order->buy_uid = auth()->id();
+            $order->type = $request->input('type',0); //商品类型：0-付费；1-积分
+            $order->is_turn = $request->input('is_turn',0); //是否转卖商品：0-原创；1-转卖
+            $order->g_id = $request->input('g_id',0); //商品id
+            $order->g_uid = $request->input('g_uid',0); //商品发布人uid
+            $order->num = $request->input('num',0); //购买数量
+            $order->address = $request->input('address',0); //收货地址id
+            $order->g_amount = $request->input('g_amount',0); //商品总价/积分
+            $order->fare = $request->input('fare',0); //运费
+            $order->total = $request->input('total',0); //订单总金额
+            $order->purse = $request->input('purse',0); //钱包支付金额
+            $order->pay_amount = $request->input('pay_amount',0); //微信/支付宝支付金额
+            $order->pay_sn = $request->input('pay_sn',''); //微信/支付宝支付流水号
+            DB::transaction(function()use($order){
                 //保存订单信息
-                DB::table('pro_mall_order')->insert($arr);
+                $order->save();
                 //保存资金流水记录
-                if($total>0){
-                    Common::SaveFunds($buy_uid, FundsEnum::BUY, $total, $sn, '购买商品', 1,$g_id);
+                if($order->total>0){
+                    Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '购买商品', 1,$order->g_id);
                 }
-                $this->data['sn'] = $sn;
+                $this->data['order_id'] = $order->id;
             });
             return $this->toJson();
         }catch (\Exception $e){
@@ -144,7 +121,7 @@ class OrderController extends Controller
     }
 
     /**
-     * 我卖出的列表
+     * 我购买的列表
      * @param Request $request
      * @return string
      */
