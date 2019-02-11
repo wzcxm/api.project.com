@@ -75,6 +75,7 @@ class OrderController extends Controller
                 if($total>0){
                     Common::SaveFunds($buy_uid, FundsEnum::BUY, $total, $sn, '购买商品', 1,$g_id);
                 }
+                $this->data['sn'] = $sn;
             });
             return $this->toJson();
         }catch (\Exception $e){
