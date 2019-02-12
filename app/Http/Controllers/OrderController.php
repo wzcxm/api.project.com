@@ -52,21 +52,11 @@ class OrderController extends Controller
                 if(!empty($goods)){
                     $front = Goods::find($order->turn_id);
                     if(!empty($front)){//上级应得
-                        $amount = $order->g_amount - $front->price * $order->num;
-                        if($order->type == DefaultEnum::YES) {  //积分商品
-                            $order->fraction = $amount;
-                        }else {  //应得金额
-                            $order->deserve = $amount;
-                        }
+                        $order->deserve = $order->g_amount - $front->price * $order->num;
                     }
                 }
             }else{    //原创商品
-                if($order->type == DefaultEnum::YES){  //积分商品
-                    $order->fraction = $order->g_amount;  //应得积分
-                    $order->deserve = $order->fare;    //应得金额（运费）
-                }else{   //付费商品
-                    $order->deserve = $order->total;  //应得金额
-                }
+                $order->deserve = $order->g_amount;
             }
             DB::transaction(function()use($order){
                 //保存订单信息
@@ -332,20 +322,48 @@ class OrderController extends Controller
                 return $this->toJson();
             }
             DB::transaction(function()use($order){
+                $order_list = DB::table('pro_mall_order')->where('sn',$order->sn)->get();
                 //修改订单状态为完成
                 DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>3,'finish_time'=>date("Y-m-d H:i:s")]);
-                //保存资金流水记录
-                if($order->total>0){
-                    //商家增加货款
-                    DB::table('pro_mall_wallet')->where('uid',$order->g_uid)->increment('amount', $order->total);
-                    Common::SaveFunds($order->g_uid, FundsEnum::SELL, $order->total, $order->sn, '卖出商品', 0,$order->id);
-                }
-                //积分商品，给商家增加积分
-                if($order->type==1){
-                    DB::table('pro_mall_users')->where('uid',$order->g_uid)->increment('integral', $order->g_amount);
+                if(count($order_list)>1){
+                    foreach ($order_list as $item){
+                        if($item->is_turn == DefaultEnum::YES){   //转卖商品
+                            if($item->type == 1){ //积分商品
+                                DB::table('pro_mall_users')->where('uid',$item->g_uid)->increment('integral', $item->deserve);
+                            }else{
+                                DB::table('pro_mall_wallet')->where('uid',$item->g_uid)->increment('amount', $item->deserve);
+                                Common::SaveFunds($item->g_uid, FundsEnum::SELL, $item->deserve, $item->sn, '卖出商品', 0,$item->id);
+                            }
+                        }else{   //原创商品
+                            //增加积分
+                            if($item->type == 1){
+                                DB::table('pro_mall_users')->where('uid',$item->g_uid)->increment('integral', $item->deserve);
+                                //积分商品，如果有运费，给商家付运费
+                                if($item->fare>0){
+                                    DB::table('pro_mall_wallet')->where('uid',$item->g_uid)->increment('amount', $item->fare);
+                                    Common::SaveFunds($item->g_uid, FundsEnum::SELL, $item->fare, $item->sn, '卖出商品', 0,$item->id);
+                                }
+                            }else{
+                                //商家付货款
+                                $amount = $item->deserve + $item->fare;
+                                DB::table('pro_mall_wallet')->where('uid',$item->g_uid)->increment('amount', $amount);
+                                Common::SaveFunds($item->g_uid, FundsEnum::SELL, $amount, $item->sn, '卖出商品', 0,$item->id);
+                            }
+                        }
+                    }
+                }else{
+                    //保存资金流水记录
+                    if($order->total>0){
+                        //商家增加货款
+                        DB::table('pro_mall_wallet')->where('uid',$order->g_uid)->increment('amount', $order->total);
+                        Common::SaveFunds($order->g_uid, FundsEnum::SELL, $order->total, $order->sn, '卖出商品', 0,$order->id);
+                    }
+                    //积分商品，给商家增加积分
+                    if($order->type==1){
+                        DB::table('pro_mall_users')->where('uid',$order->g_uid)->increment('integral', $order->g_amount);
+                    }
                 }
             });
-
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;

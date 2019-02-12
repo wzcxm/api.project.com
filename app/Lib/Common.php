@@ -231,6 +231,15 @@ class Common
                     'buy_uid'=>$order->buy_uid,
                     'pay_sn'=>$order->pay_sn,
                 ];
+                $amount = $order->num * $front_Goods->price;
+                if($front_Goods->type==DefaultEnum::YES){
+                    $front = Goods::find($front_Goods->turn_id);
+                    if(!empty($front)){//上级应得
+                        $order_arr['deserve'] = $amount - $front->price * $order->num;
+                    }
+                }else{
+                    $order_arr['deserve'] = $amount;
+                }
                 DB::table('pro_mall_order')->insert($order_arr);
                 if($front_Goods->type == DefaultEnum::YES){
                     self::Create_Order($order,$front_Goods->turn_id);
