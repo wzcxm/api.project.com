@@ -291,7 +291,9 @@ class OrderController extends Controller
                 //修改订单状态为关闭
                 $up_arr = ['status'=>4];
                 $uid = auth()->id();
-                if($uid == $order->g_uid){
+                if($uid == $order->buy_uid){
+                    $up_arr['close_type']=0;
+                }else{
                     $up_arr['close_type']=1;
                 }
                 DB::table('pro_mall_order')->where('sn',$order->sn)->update($up_arr);
