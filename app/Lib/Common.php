@@ -14,7 +14,6 @@ use App\Models\Task;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use phpDocumentor\Reflection\Types\Self_;
 
 class Common
 {
@@ -252,14 +251,12 @@ class Common
             return DB::table('view_order_list')
                 ->where('g_uid',$uid)
                 ->where('status',$status)
-                ->where('isdelete',0)
                 ->count();
         }else{ //我买到的商品，数量
             return DB::table('view_order_list')
                 ->where('buy_uid',$uid)
                 ->where('status',$status)
                 ->where('is_turn',0)
-                ->where('isdelete',0)
                 ->count();
         }
     }

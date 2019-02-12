@@ -14,7 +14,6 @@ use App\Lib\DefaultEnum;
 use App\Lib\FundsEnum;
 use App\Models\Goods;
 use App\Models\Order;
-use function foo\func;
 use Illuminate\Http\Request;
 use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
@@ -47,6 +46,13 @@ class OrderController extends Controller
             $order->purse = $request->input('purse',0); //钱包支付金额
             $order->pay_amount = $request->input('pay_amount',0); //微信/支付宝支付金额
             $order->pay_sn = $request->input('pay_sn',''); //微信/支付宝支付流水号
+
+            if($order->is_turn == DefaultEnum::YES){
+
+            }else{
+
+            }
+
             DB::transaction(function()use($order){
                 //保存订单信息
                 $order->save();
@@ -150,7 +156,6 @@ class OrderController extends Controller
                 ->where('buy_uid',$uid)
                 ->where('status',$status)
                 ->where('is_turn',0)
-                ->where('isdelete',0)
                 ->orderBy('id','desc')
                 ->simplePaginate(10);
             $order = $order->items();
