@@ -12,6 +12,7 @@ namespace App\Http\Controllers;
 use App\Lib\Common;
 use App\Lib\DefaultEnum;
 use App\Lib\FundsEnum;
+use App\Models\Goods;
 use App\Models\Order;
 use function foo\func;
 use Illuminate\Http\Request;
@@ -35,6 +36,7 @@ class OrderController extends Controller
             $order->buy_uid = auth()->id();
             $order->type = $request->input('type',0); //商品类型：0-付费；1-积分
             $order->is_turn = $request->input('is_turn',0); //是否转卖商品：0-原创；1-转卖
+            //$order->turn_id = $request->input('init_id',0); //转卖商品原始id
             $order->g_id = $request->input('g_id',0); //商品id
             $order->g_uid = $request->input('g_uid',0); //商品发布人uid
             $order->num = $request->input('num',0); //购买数量
@@ -51,6 +53,13 @@ class OrderController extends Controller
                 //保存资金流水记录
                 if($order->total>0){
                     Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '购买商品', 1,$order->g_id);
+                }
+                //转卖订单，生产上级订单
+                if($order->is_turn == DefaultEnum::YES){
+                    $goods = Goods::find($order->g_id);
+                    if(!empty($goods)){
+                        Common::Create_Order($order,$goods->turn_id);
+                    }
                 }
                 $this->data['order_id'] = $order->id;
             });

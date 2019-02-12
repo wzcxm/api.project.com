@@ -210,34 +210,33 @@ class Common
 
     /**
      * 转卖订单，生成订单信息
-     * @param $arr
      * @param $order
+     * @param $turn_id
      */
-    public static function Order_Arr(&$arr,$order){
-        $front_Goods = Goods::find($order->turn_id);
-        if(!empty($front_Goods)){
-            $temp = [
-                'sn' => $order['sn'],
-                'type'=>$order['type'],
-                'g_id'=>$front_Goods->id,
-                'is_turn'=>$front_Goods->type,
-                'g_uid'=>$front_Goods->uid,
-                'num'=>$order['num'],
-                'g_amount'=>$order['g_amount'],
-                'fare'=>$order['fare'],
-                'total'=>$order['total'],
-                'purse'=>$order['purse'],
-                'pay_amount'=>$order['pay_amount'],
-                'address'=>$order['address'],
-                'buy_uid'=>$order['buy_uid'],
-                'pay_sn'=>$order['pay_sn'],
-                'turn_id'=>$front_Goods->turn_id
-            ];
-            $arr[] = $temp;
-            if($front_Goods->type == DefaultEnum::YES){
-                self::Order_Arr($arr,$temp);
+    public static function Create_Order($order,$turn_id){
+            $front_Goods = Goods::find($turn_id);
+            if(!empty($front_Goods)){
+                $order_arr = [
+                    'sn' => $order->sn,
+                    'type'=>$order->type,
+                    'g_id'=>$front_Goods->id,
+                    'is_turn'=>$front_Goods->type,
+                    'g_uid'=>$front_Goods->uid,
+                    'num'=>$order->num,
+                    'g_amount'=>$order->g_amount,
+                    'fare'=>$order->fare,
+                    'total'=>$order->total,
+                    'purse'=>$order->purse,
+                    'pay_amount'=>$order->pay_amount,
+                    'address'=>$order->address,
+                    'buy_uid'=>$order->buy_uid,
+                    'pay_sn'=>$order->pay_sn,
+                ];
+                DB::table('pro_mall_order')->insert($order_arr);
+                if($front_Goods->type == DefaultEnum::YES){
+                    self::Create_Order($order,$front_Goods->turn_id);
+                }
             }
-        }
     }
 
 
@@ -253,6 +252,7 @@ class Common
             return DB::table('view_order_list')
                 ->where('g_uid',$uid)
                 ->where('status',$status)
+                ->where('isdelete',0)
                 ->count();
         }else{ //我买到的商品，数量
             return DB::table('view_order_list')
