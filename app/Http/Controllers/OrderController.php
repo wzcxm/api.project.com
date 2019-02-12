@@ -46,13 +46,28 @@ class OrderController extends Controller
             $order->purse = $request->input('purse',0); //钱包支付金额
             $order->pay_amount = $request->input('pay_amount',0); //微信/支付宝支付金额
             $order->pay_sn = $request->input('pay_sn',''); //微信/支付宝支付流水号
-
-            if($order->is_turn == DefaultEnum::YES){
-
-            }else{
-
+            //应得金额
+            if($order->is_turn == DefaultEnum::YES){  //转卖商品
+                $goods = Goods::find($order->g_id);
+                if(!empty($goods)){
+                    $front = Goods::find($order->turn_id);
+                    if(!empty($front)){//上级应得
+                        $amount = $order->g_amount - $front->price * $order->num;
+                        if($order->type == DefaultEnum::YES) {  //积分商品
+                            $order->fraction = $amount;
+                        }else {  //应得金额
+                            $order->deserve = $amount;
+                        }
+                    }
+                }
+            }else{    //原创商品
+                if($order->type == DefaultEnum::YES){  //积分商品
+                    $order->fraction = $order->g_amount;  //应得积分
+                    $order->deserve = $order->fare;    //应得金额（运费）
+                }else{   //付费商品
+                    $order->deserve = $order->total;  //应得金额
+                }
             }
-
             DB::transaction(function()use($order){
                 //保存订单信息
                 $order->save();
@@ -274,12 +289,21 @@ class OrderController extends Controller
             }
             DB::transaction(function()use($order){
                 //修改订单状态为关闭
-                DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>4]);
+                $up_arr = ['status'=>4];
+                $uid = auth()->id();
+                if($uid == $order->g_uid){
+                    $up_arr['close_type']=1;
+                }
+                DB::table('pro_mall_order')->where('sn',$order->sn)->update($up_arr);
                 //退回订单金额
                 if($order->total>0){
                     DB::table('pro_mall_wallet')->where('uid',$order->buy_uid)->increment('amount', $order->total);
                     //保存资金流水记录
                     Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '退回商品金额', 0,$order->id);
+                }
+                //退回积分
+                if($order->type == 1){
+                    DB::table('pro_mall_users')->where('uid',$order->buy_uid)->increment('integral', $order->g_amount);
                 }
             });
 
@@ -308,15 +332,15 @@ class OrderController extends Controller
             DB::transaction(function()use($order){
                 //修改订单状态为完成
                 DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>3,'finish_time'=>date("Y-m-d H:i:s")]);
-                //商家增加货款
-                DB::table('pro_mall_wallet')->where('uid',$order->g_uid)->increment('amount', $order->total);
+                //保存资金流水记录
+                if($order->total>0){
+                    //商家增加货款
+                    DB::table('pro_mall_wallet')->where('uid',$order->g_uid)->increment('amount', $order->total);
+                    Common::SaveFunds($order->g_uid, FundsEnum::SELL, $order->total, $order->sn, '卖出商品', 0,$order->id);
+                }
                 //积分商品，给商家增加积分
                 if($order->type==1){
                     DB::table('pro_mall_users')->where('uid',$order->g_uid)->increment('integral', $order->g_amount);
-                }
-                //保存资金流水记录
-                if($order->total>0){
-                    Common::SaveFunds($order->g_uid, FundsEnum::SELL, $order->total, $order->sn, '卖出商品', 0,$order->id);
                 }
             });
 
