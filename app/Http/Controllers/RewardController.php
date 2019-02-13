@@ -420,7 +420,7 @@ class RewardController extends Controller
                         //支付佣金
                         DB::table('pro_mall_wallet')->where('uid',$task->uid)->increment('amount', $task->price);
                         //保存资金流水记录
-                        Common::SaveFunds($task->uid, FundsEnum::FINISH, $task->price, $task->id, '完成任务赏金', 0,$task->id);
+                        Common::SaveFunds($task->uid, FundsEnum::FINISH, $task->price, $task->id, '获得佣金', 0,$task->id);
                         //回写，任务已付赏金数量
                         DB::table('pro_mall_reward')->where('id',$task->r_id)->increment('surplus', $task->price);
                         //所有订单完成时，悬赏任务改为完成状态

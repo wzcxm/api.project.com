@@ -291,7 +291,7 @@ class OrderController extends Controller
                 if($order->total>0){
                     DB::table('pro_mall_wallet')->where('uid',$order->buy_uid)->increment('amount', $order->total);
                     //保存资金流水记录
-                    Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '退回商品金额', 0,$order->id);
+                    Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '商品退款', 0,$order->id);
                 }
                 //退回积分
                 if($order->type == 1){
