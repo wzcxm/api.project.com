@@ -44,8 +44,7 @@ class OrderController extends Controller
             $order->total = $request->input('total',0); //订单总金额
             $goods = Goods::find($order->g_id);
             if(!empty($goods)){
-                $goods->amount-=$order->num;
-                if($goods->amount<0){
+                if($goods->amount-$order->num<0){
                     $this->code = ErrorCode::PARAM_ERROR;
                     $this->message = '商品库存不足';
                     return $this->toJson();
@@ -75,8 +74,6 @@ class OrderController extends Controller
                         Common::Create_Order($order,$goods->turn_id);
                     }
                 }
-                //商品减去下单的数量
-                $goods->save();
                 $this->data['order_id'] = $order->id;
                 $this->data['order_sn'] = $order->sn;
             });
@@ -116,7 +113,7 @@ class OrderController extends Controller
                 $this->data['PayJson'] = [];
             }else{
                 //调微信支付
-                $this->data = ['PayJson']=[];
+                $this->data['PayJson'] = [];
             }
             $order->pay_sn = $pay_sn;
             $order->save();
@@ -341,6 +338,8 @@ class OrderController extends Controller
                 if($order->type == 1){
                     DB::table('pro_mall_users')->where('uid',$order->buy_uid)->increment('integral', $order->g_amount);
                 }
+                //订单关闭后，商品数量加上订单数量
+                DB::table('pro_mall_goods')->where('id',$order->g_id)->increment('amount',$order->num);
             });
 
             return $this->toJson();
