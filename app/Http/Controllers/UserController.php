@@ -9,7 +9,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\EmailJob;
 use App\Lib\Common;
 use App\Lib\DataComm;
 use App\Lib\ErrorCode;

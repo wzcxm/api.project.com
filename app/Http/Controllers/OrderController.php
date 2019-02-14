@@ -39,26 +39,29 @@ class OrderController extends Controller
             $order->g_id = $request->input('g_id',0); //商品id
             $order->g_uid = $request->input('g_uid',0); //商品发布人uid
             $order->num = $request->input('num',0); //购买数量
-            $order->address = $request->input('address',0); //收货地址id
             $order->g_amount = $request->input('g_amount',0); //商品总价/积分
             $order->fare = $request->input('fare',0); //运费
             $order->total = $request->input('total',0); //订单总金额
-            $order->purse = $request->input('purse',0); //钱包支付金额
-            $order->pay_amount = $request->input('pay_amount',0); //微信/支付宝支付金额
-            $order->pay_sn = $request->input('pay_sn',''); //微信/支付宝支付流水号
-            //应得金额
-            if($order->is_turn == DefaultEnum::YES){  //转卖商品
-                $goods = Goods::find($order->g_id);
-                if(!empty($goods)){
+            $goods = Goods::find($order->g_id);
+            if(!empty($goods)){
+                $goods->amount-=$order->num;
+                if($goods->amount<0){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '商品库存不足';
+                    return $this->toJson();
+                }
+                //应得金额
+                if($order->is_turn == DefaultEnum::YES){  //转卖商品
                     $front = Goods::find($order->turn_id);
                     if(!empty($front)){//上级应得
                         $order->deserve = $order->g_amount - $front->price * $order->num;
                     }
+                }else{    //原创商品
+                    $order->deserve = $order->g_amount;
                 }
-            }else{    //原创商品
-                $order->deserve = $order->g_amount;
             }
-            DB::transaction(function()use($order){
+
+            DB::transaction(function()use($order,$goods){
                 //保存订单信息
                 $order->save();
                 //保存资金流水记录
@@ -72,8 +75,51 @@ class OrderController extends Controller
                         Common::Create_Order($order,$goods->turn_id);
                     }
                 }
+                //商品减去下单的数量
+                $goods->save();
                 $this->data['order_id'] = $order->id;
+                $this->data['order_sn'] = $order->sn;
             });
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+
+    /**
+     * 订单付款
+     * @param Request $request
+     * @return string
+     */
+    public function Pay(Request $request){
+        try{
+            $id = $request->input('id',0);
+            $address = $request->input('address',0);//地址id
+            $purse = $request->input('purse',0);//钱包支付金额
+            $pay_amount = $request->input('pay_amount',0);//第三方支付金额
+            $pay_type = $request->input('pay_type',0);//支付方式：0-微信；1-支付宝
+            $order  =Order::find($id);
+            if(empty($order)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id错误';
+                return $this->toJson();
+            }
+            $order->address = $address;
+            $order->purse = $purse;
+            $order->pay_amount = $pay_amount;
+            $pay_sn = Common::CreateCode();
+            if($pay_type==DefaultEnum::YES){
+                //调支付宝支付
+                $this->data['PayJson'] = [];
+            }else{
+                //调微信支付
+                $this->data = ['PayJson']=[];
+            }
+            $order->pay_sn = $pay_sn;
+            $order->save();
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -90,14 +136,13 @@ class OrderController extends Controller
      */
     public function FindExpress(Request $request){
         try{
-            $com = $request->input('com','');
             $num = $request->input('num','');
-            if(empty($com) || empty($num)){
+            if( empty($num)){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = '快递公司编码或快递单号不能为空';
                 return $this->toJson();
             }
-            $data = Common::Find_Express($com,$num);
+            $data = Common::Find_Express($num);
             $this->data = $data;
             return $this->toJson();
         }catch (\Exception $e){
@@ -244,7 +289,6 @@ class OrderController extends Controller
             $id = $request->input('id',0);
             $express = $request->input('express',0);
             $firm = $request->input('firm','');
-            $firm_code = $request->input('firm_code',0);
             $order = Order::find($id);
             if(empty($order)){
                 $this->code = ErrorCode::PARAM_ERROR;
@@ -254,7 +298,7 @@ class OrderController extends Controller
             //修改订单状态为已发货
             DB::table('pro_mall_order')
                 ->where('sn',$order->sn)
-                ->update(['express'=>$express,'firm'=>$firm,'firm_code'=>$firm_code,'hair_time'=>date("Y-m-d H:i:s"),'status'=>2]);
+                ->update(['express'=>$express,'firm'=>$firm,'hair_time'=>date("Y-m-d H:i:s"),'status'=>2]);
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;

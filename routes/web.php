@@ -117,6 +117,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/GetAddress','AddressController@GetAddress');
     //获取物流地址列表
     $router->get('/GetAddressList','AddressController@GetAddressList');
+    //获取用户默认物流地址
+    $router->get('/GetDefaultAddress','AddressController@GetDefaultAddress');
+
     /**
      * 商品
      */
@@ -194,4 +197,7 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/CloseOrder','OrderController@CloseOrder');
     //确认收货
     $router->post('/ConfirmOrder','OrderController@ConfirmOrder');
+    //确认支付
+    $router->post('/Pay','OrderController@Pay');
 });
+

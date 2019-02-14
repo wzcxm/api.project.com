@@ -164,18 +164,35 @@ class Common
         return $data;
     }
 
-
     /**
-     * 快递查询
-     * @param $com
+     * 获取快递公司编码
      * @param $num
      * @return mixed
      */
-    public static function Find_Express($com,$num){
+    public static function GetComCode($num){
+        $url = 'http://www.kuaidi100.com/autonumber/auto?num='.$num.'&key=yNUouIrq8028';
+        $ch = curl_init();
+        curl_setopt ($ch, CURLOPT_URL, $url);
+        curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt ($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $data = str_replace("\"",'"',$result );
+        $data = json_decode($data,true);
+        return $data[0]['comCode'];
+    }
+
+    /**
+     * 快递查询
+     * @param $num
+     * @return mixed
+     */
+    public static function Find_Express($num){
         //参数设置
         $post_data = array();
         $post_data["customer"] = 'B462DBF487B84144EBACAB0A0934ADC7';
         $key= 'yNUouIrq8028' ;
+        $com = self::GetComCode($num);
         $post_data["param"] = "{'com':'".$com."','num':'".$num."'}";
 
         $url='http://poll.kuaidi100.com/poll/query.do';
@@ -225,11 +242,7 @@ class Common
                     'g_amount'=>$order->g_amount,
                     'fare'=>$order->fare,
                     'total'=>$order->total,
-                    'purse'=>$order->purse,
-                    'pay_amount'=>$order->pay_amount,
-                    'address'=>$order->address,
                     'buy_uid'=>$order->buy_uid,
-                    'pay_sn'=>$order->pay_sn,
                 ];
                 $amount = $order->num * $front_Goods->price;
                 if($front_Goods->type==DefaultEnum::YES){

@@ -117,6 +117,27 @@ class AddressController extends Controller
     }
 
     /**
+     * 获取默认物流地址信息
+     * @param Request $request
+     * @return string
+     */
+    public function GetDefaultAddress(Request $request){
+        try{
+            $uid = auth()->id();
+            $address = Address::where('uid',$uid)->where('default',1)->first();
+            if(empty($address)){
+                $address = Address::where('uid',$uid)->first();
+            }
+            $this->data = $address;
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+    }
+
+    /**
      * 获取物流地址列表
      * @param Request $request
      * @return string
