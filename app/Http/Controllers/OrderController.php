@@ -170,7 +170,8 @@ class OrderController extends Controller
                 'pending'=> Common::GetOrderNum($uid,1,1),
                 'sent'=> Common::GetOrderNum($uid,2,1),
                 'cancel'=> Common::GetOrderNum($uid,4,1),
-                'finish'=> Common::GetOrderNum($uid,3,1)
+                'finish'=> Common::GetOrderNum($uid,3,1),
+                'unpaid'=> Common::GetOrderNum($uid,0,1),
             ];
             //我卖出的订单列表
             $order = DB::table('view_order_list')
@@ -202,7 +203,8 @@ class OrderController extends Controller
                 'pending'=> Common::GetOrderNum($uid,1,2),
                 'sent'=> Common::GetOrderNum($uid,2,2),
                 'cancel'=> Common::GetOrderNum($uid,4,2),
-                'finish'=> Common::GetOrderNum($uid,3,2)
+                'finish'=> Common::GetOrderNum($uid,3,2),
+                'unpaid'=> Common::GetOrderNum($uid,0,2),
             ];
             //我买到的订单列表
             $order = DB::table('view_order_list')
