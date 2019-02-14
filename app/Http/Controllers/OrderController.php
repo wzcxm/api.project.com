@@ -104,6 +104,12 @@ class OrderController extends Controller
                 $this->message = 'id错误';
                 return $this->toJson();
             }
+            $goods = Goods::find($order->g_id);
+            if($goods->amount-$order->num<0){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '商品库存不足';
+                return $this->toJson();
+            }
             $order->address = $address;
             $order->purse = $purse;
             $order->pay_amount = $pay_amount;
@@ -284,7 +290,7 @@ class OrderController extends Controller
     public function Ship(Request $request){
         try{
             $id = $request->input('id',0);
-            $express = $request->input('express',0);
+            $express = $request->input('express','');
             $firm = $request->input('firm','');
             $order = Order::find($id);
             if(empty($order)){
