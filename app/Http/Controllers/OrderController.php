@@ -44,7 +44,7 @@ class OrderController extends Controller
             $order->fare = $request->input('fare',0); //运费
             $order->total = $request->input('total',0); //订单总金额
             $init_goods = Goods::find($order->turn_id);
-            if($init_goods->amount-$order->num<0){
+            if(!empty($init_goods) && $init_goods->amount-$order->num<0){
                 $this->code = ErrorCode::PARAM_ERROR;
                 $this->message = '商品库存不足';
                 return $this->toJson();
