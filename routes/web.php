@@ -38,6 +38,15 @@ $router->get('/GetSquareGoods','GoodsController@GetSquareGoods');
 //广场悬赏任务
 $router->get('/GetSquareReward','RewardController@GetSquareReward');
 
+/**
+ * 支付回调
+ */
+//支付宝支付异步回调
+$router->post('/AliNotify','PayController@AliNotify');
+//微信支付异步回调
+$router->post('/WeChatNotify','PayController@WeChatNotify');
+
+
 $router->group(['middleware' => 'checktoken'],function() use ($router){
     /**
      * 用户
@@ -150,6 +159,8 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
      */
     //发布/修改悬赏任务
     $router->post('/EditReward','RewardController@EditReward');
+    //立即支付
+    $router->post('/RewardPay','OrderController@RewardPay');
     //获取悬赏任务详情
     $router->get('/GetReward','RewardController@GetReward');
     //获取悬赏任务列表
@@ -198,6 +209,6 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //确认收货
     $router->post('/ConfirmOrder','OrderController@ConfirmOrder');
     //确认支付
-    $router->post('/Pay','OrderController@Pay');
+    $router->post('/OrderPay','OrderController@OrderPay');
 });
 

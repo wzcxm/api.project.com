@@ -22,6 +22,7 @@ use App\Models\TaskChat;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Yansongda\LaravelPay\Facades\Pay;
 
 class RewardController extends Controller
 {
@@ -45,19 +46,12 @@ class RewardController extends Controller
             $amount = $request->input('amount',0); //任务数量
             $price = $request->input('price',0); //单价
             $hope_time = $request->input('hope_time','');  //期望完成时间
-            $pay_no = $request->input('pay_no',''); //支付号
-            $total = $request->input('total',''); //总支付金额
-            $purse = $request->input('purse',''); //钱包支付金额
             if(empty($id)){
                 $reward = new Reward();
                 $reward->sn = Common::CreateCode();
                 $reward->uid = $uid;
                 $reward->amount = $amount;
                 $reward->price = $price;
-                $reward->pay_no = $pay_no;
-                $reward->total = $total;
-                $reward->purse = $purse;
-
             }else{
                 $reward = Reward::find($id);
             }
@@ -89,6 +83,66 @@ class RewardController extends Controller
             return $this->toJson();
         }
     }
+
+    public function RewardPay(Request $request){
+        try{
+            $id = $request->input('id','');
+            $pay_type = $request->input('pay_type',''); //支付号
+            $total = $request->input('total',''); //总支付金额
+            $purse = $request->input('purse',''); //钱包支付金额
+            $pay_amount = $request->input('pay_amount',''); //第三方支付金额
+            $pay_pwd = $request->input('pay_pwd','');
+            $reward = Reward::find($id);
+            if(empty($reward)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id错误';
+                return $this->toJson();
+            }
+            $reward->purse = $purse;
+            $reward->total = $total;
+            $reward->pay_amount = $pay_amount;
+            ///钱包支付
+            if($pay_amount == 0 && $purse > 0){
+                $user = auth()->user();
+                if(empty($user->pay_pwd)){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '未设置支付密码';
+                    return $this->toJson();
+                }
+                if($user->pay_pwd != md5($pay_pwd)){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '支付密码错误';
+                    return $this->toJson();
+                }
+                DB::transaction(function ()use($reward,$user) {
+                    DB::table('pro_mall_wallet')->where('uid', $user->uid)->decrement('amount', $reward->purse);
+                    //保存资金流水记录
+                    Common::SaveFunds($user->uid, FundsEnum::RELEASE, $reward->purse, $reward->sn, '购买商品', 1, $reward->id);
+                    $reward->pay_status = 1;
+                    $reward->save();
+                    $this->message = '钱包支付成功！';
+                });
+            }else{ //第三方支付
+                $pay_sn = Common::CreateCode();
+                $this->data['PayJson'] = Common::CommPay($pay_type,$pay_sn,$pay_amount,'发布任务');
+                $reward->pay_no = $pay_sn;
+                //支付记录
+                $pay_record = ['pro_type'=>2, 'uid'=>auth()->id(), 'pro_id'=>$id, 'pay_no'=>$pay_sn, 'pay_type'=>$pay_type, 'amount'=>$pay_amount];
+                DB::transaction(function ()use($reward,$pay_record){
+                    $reward->save();
+                    //保存支付信息
+                    DB::table('pro_mall_payrecord')->insert($pay_record);
+                });
+            }
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+
+    }
+
 
     /**
      * 获取一条悬赏任务详情

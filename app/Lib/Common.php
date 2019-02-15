@@ -9,11 +9,13 @@
 namespace App\Lib;
 
 use App\Models\Goods;
+use App\Models\Order;
 use App\Models\Reward;
 use App\Models\Task;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Yansongda\LaravelPay\Facades\Pay;
 
 class Common
 {
@@ -243,6 +245,7 @@ class Common
                     'fare'=>$order->fare,
                     'total'=>$order->total,
                     'buy_uid'=>$order->buy_uid,
+                    'turn_id'=>$order->turn_id
                 ];
                 $amount = $order->num * $front_Goods->price;
                 if($front_Goods->type==DefaultEnum::YES){
@@ -323,4 +326,36 @@ class Common
         }
         return $b;
     }
+
+
+    /**
+     * 支付宝/微信，统一下单
+     * @param $out_trade_no
+     * @param $total_amount
+     * @param $string
+     * @param $pay_type
+     * @return mixed
+     */
+    public static function  CommPay($pay_type,$out_trade_no,$total_amount,$string){
+        if($pay_type==0){ //微信支付
+            $wechat_order = [
+                'out_trade_no' => $out_trade_no,
+                'body' => $string,
+                'total_fee'=> $total_amount*100,
+            ];
+            // 将返回字符串，供后续 APP 调用
+            return Pay::wechat()->app($wechat_order);
+        }else{   //支付宝支付
+            $ali_order = [
+                'out_trade_no' => $out_trade_no,
+                'total_amount' => $total_amount,
+                'subject'=> $string,
+            ];
+            // 将返回字符串，供后续 APP 调用
+            return  Pay::alipay()->app($ali_order);
+        }
+    }
+
+
+
 }

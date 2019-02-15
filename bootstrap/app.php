@@ -105,6 +105,9 @@ $app->register(Illuminate\Mail\MailServiceProvider::class);
 
 
 $app->register(\Tymon\JWTAuth\Providers\LumenServiceProvider::class);
+
+
+$app->register(Yansongda\LaravelPay\PayServiceProvider::class);
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes

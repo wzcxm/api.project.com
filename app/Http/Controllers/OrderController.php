@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use App\Lib\ErrorCode;
 use App\Lib\ReturnData;
 use Illuminate\Support\Facades\DB;
+use Yansongda\LaravelPay\Facades\Pay;
 
 class OrderController extends Controller
 {
@@ -35,23 +36,24 @@ class OrderController extends Controller
             $order->buy_uid = auth()->id();
             $order->type = $request->input('type',0); //商品类型：0-付费；1-积分
             $order->is_turn = $request->input('is_turn',0); //是否转卖商品：0-原创；1-转卖
-            //$order->turn_id = $request->input('init_id',0); //转卖商品原始id
+            $order->turn_id = $request->input('init_id',0); //转卖商品原始id
             $order->g_id = $request->input('g_id',0); //商品id
             $order->g_uid = $request->input('g_uid',0); //商品发布人uid
             $order->num = $request->input('num',0); //购买数量
             $order->g_amount = $request->input('g_amount',0); //商品总价/积分
             $order->fare = $request->input('fare',0); //运费
             $order->total = $request->input('total',0); //订单总金额
+            $init_goods = Goods::find($order->turn_id);
+            if($init_goods->amount-$order->num<0){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = '商品库存不足';
+                return $this->toJson();
+            }
+            //计算应得金额
             $goods = Goods::find($order->g_id);
             if(!empty($goods)){
-                if($goods->amount-$order->num<0){
-                    $this->code = ErrorCode::PARAM_ERROR;
-                    $this->message = '商品库存不足';
-                    return $this->toJson();
-                }
-                //应得金额
                 if($order->is_turn == DefaultEnum::YES){  //转卖商品
-                    $front = Goods::find($order->turn_id);
+                    $front = Goods::find($goods->turn_id);
                     if(!empty($front)){//上级应得
                         $order->deserve = $order->g_amount - $front->price * $order->num;
                     }
@@ -59,14 +61,9 @@ class OrderController extends Controller
                     $order->deserve = $order->g_amount;
                 }
             }
-
             DB::transaction(function()use($order,$goods){
                 //保存订单信息
                 $order->save();
-                //保存资金流水记录
-                if($order->total>0){
-                    Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->total, $order->sn, '购买商品', 1,$order->g_id);
-                }
                 //转卖订单，生产上级订单
                 if($order->is_turn == DefaultEnum::YES){
                     $goods = Goods::find($order->g_id);
@@ -91,13 +88,14 @@ class OrderController extends Controller
      * @param Request $request
      * @return string
      */
-    public function Pay(Request $request){
+    public function OrderPay(Request $request){
         try{
             $id = $request->input('id',0);
             $address = $request->input('address',0);//地址id
             $purse = $request->input('purse',0);//钱包支付金额
             $pay_amount = $request->input('pay_amount',0);//第三方支付金额
-            $pay_type = $request->input('pay_type',0);//支付方式：0-微信；1-支付宝
+            $pay_type = $request->input('pay_type',0);//支付方式：0-微信；1-支付宝;
+            $pay_pwd = $request->input('pay_pwd','');
             $order  =Order::find($id);
             if(empty($order)){
                 $this->code = ErrorCode::PARAM_ERROR;
@@ -110,19 +108,46 @@ class OrderController extends Controller
                 $this->message = '商品库存不足';
                 return $this->toJson();
             }
-            $order->address = $address;
-            $order->purse = $purse;
-            $order->pay_amount = $pay_amount;
-            $pay_sn = Common::CreateCode();
-            if($pay_type==DefaultEnum::YES){
-                //调支付宝支付
-                $this->data['PayJson'] = [];
-            }else{
-                //调微信支付
-                $this->data['PayJson'] = [];
+            $order_arr = ['address' => $address, 'purse' => $purse, 'pay_amount' => $pay_amount];
+            ///  钱包支付
+            if($pay_amount == 0 && $purse > 0){
+                $user = auth()->user();
+                if(empty($user->pay_pwd)){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '未设置支付密码';
+                    return $this->toJson();
+                }
+                if($user->pay_pwd != md5($pay_pwd)){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '支付密码错误';
+                    return $this->toJson();
+                }
+                $order_arr['status'] = 1;
+                DB::transaction(function ()use($order,$user,$order_arr){
+                    //扣除钱包金额
+                    DB::table('pro_mall_wallet')->where('uid', $user->uid)->decrement('amount', $order_arr['purse']);
+                    //保存资金流水记录
+                    Common::SaveFunds($user->uid, FundsEnum::BUY, $order_arr['purse'], $order->sn, '购买商品', 1, $order->id);
+                    //更新商品库存
+                    DB::table('pro_mall_goods')->where('id', $order->turn_id)->decrement('amount', $order->num);
+                    //保存订单信息
+                    DB::table('pro_mall_order')->where('sn', $order->sn)->update($order_arr);
+                    $this->message = '钱包支付成功！';
+                });
+
+            }else{  ///第三方支付
+                $pay_sn = Common::CreateCode();
+                $this->data['PayJson'] = Common::CommPay($pay_type,$pay_sn,$pay_amount,'购买商品');
+                //支付记录
+                $pay_record = ['pro_type'=>1, 'uid'=>auth()->id(), 'pro_id'=>$order->id, 'pay_no'=>$pay_sn, 'pay_type'=>$pay_type, 'amount'=>$pay_amount];
+                $order_arr['pay_sn'] = $pay_sn;
+                DB::transaction(function ()use($order,$pay_record,$order_arr){
+                    //保存支付信息
+                    DB::table('pro_mall_payrecord')->insert($pay_record);
+                    //保存订单信息
+                    DB::table('pro_mall_order')->where('sn',$order->sn)->update($order_arr);
+                });
             }
-            $order->pay_sn = $pay_sn;
-            $order->save();
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
