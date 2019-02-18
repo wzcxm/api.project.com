@@ -208,8 +208,8 @@ class UserController extends Controller
                 return $this->toJson();
             }
             //每次登录更新一次文件上传key
-            $user->file_key = str_random(65);
-            $user->save();
+            //$user->file_key = str_random(65);
+            //$user->save();
             $token = auth()->tokenById($user->uid);
             //返回用户信息
             $this->data['UserInfo'] = $user;
