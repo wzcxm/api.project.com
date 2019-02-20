@@ -55,16 +55,9 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->get('/Logout','UserController@Logout');
     //获取用户信息
     $router->get('/GetUserInfo','UserController@GetUserInfo');
-    //获取用户钱包信息
-    $router->get('/GetUserWallet','UserController@GetUserWallet');
     //修改用户信息
     $router->post('/UpdateUser','UserController@UpdateUser');
-    //设置登录密码
-    $router->post('/SetLoginPwd','UserController@SetLoginPwd');
-    //设置支付密码
-    $router->post('/SetPayPwd','UserController@SetPayPwd');
-    //意见反馈
-    $router->post('/Feedback','UserController@Feedback');
+
 
     /**
      * 好友
@@ -116,7 +109,7 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     //删除动态
     $router->post('/DeleteDynamic','DynamicController@DeleteDynamic');
     /**
-     * 我的物流地址
+     * 物流地址
      */
     //编辑物流地址
     $router->post('/EditAddress','AddressController@EditAddress');
@@ -210,5 +203,38 @@ $router->group(['middleware' => 'checktoken'],function() use ($router){
     $router->post('/ConfirmOrder','OrderController@ConfirmOrder');
     //确认支付
     $router->post('/OrderPay','OrderController@OrderPay');
+    //收货/发货提醒
+    $router->post('/Remind','OrderController@Remind');
+
+
+    /**
+     * 消息
+     */
+    //点赞列表
+    $router->get('/LikeList','MsgController@LikeList');
+    //评论列表
+    $router->get('/CommentList','MsgController@CommentList');
+    //回复列表
+    $router->get('/ReplyList','MsgController@ReplyList');
+    //转发列表
+    $router->get('/TurnList','MsgController@TurnList');
+    //实时消息
+    $router->get('/MsgList','MsgController@MsgList');
+
+    /**
+     * 我的钱包
+     */
+    //获取用户钱包信息
+    $router->get('/GetUserWallet','WalletController@GetUserWallet');
+
+    /**
+     * 设置
+     */
+    //设置登录密码
+    $router->post('/SetLoginPwd','SettingController@SetLoginPwd');
+    //设置支付密码
+    $router->post('/SetPayPwd','SettingController@SetPayPwd');
+    //意见反馈
+    $router->post('/Feedback','SettingController@Feedback');
 });
 

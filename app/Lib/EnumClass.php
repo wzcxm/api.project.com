@@ -66,21 +66,14 @@ abstract  class ReleaseEnum{
      */
     const GOODS = 2;
     /**
-     * 积分商品
+     * 评论
      */
-    const INTEGRAL = 3;
+    const DISCUSS = 3;
     /**
      * 悬赏任务
      */
     const REWARD = 4;
-    /**
-     * 评论
-     */
-    const DISCUSS = 5;
-    /**
-     * 悬赏任务订单
-     */
-    const REWARD_ORDER = 6;
+
 }
 
 /**

@@ -9,7 +9,6 @@
 namespace App\Lib;
 
 use App\Models\Goods;
-use App\Models\Order;
 use App\Models\Reward;
 use App\Models\Task;
 use Illuminate\Support\Facades\Cache;
@@ -83,17 +82,11 @@ class Common
             case ReleaseEnum::GOODS:
                 $table = 'pro_mall_goods';
                 break;
-            case ReleaseEnum::INTEGRAL:
-                $table = 'pro_mall_integral_goods';
-                break;
             case ReleaseEnum::REWARD:
                 $table = 'pro_mall_reward';
                 break;
             case ReleaseEnum::DISCUSS:
                 $table = 'pro_mall_comment';
-                break;
-            case ReleaseEnum::REWARD_ORDER:
-                $table = 'pro_mall_reward_order';
                 break;
             default:
                 $table = '';
@@ -309,6 +302,74 @@ class Common
         ]);
     }
 
+    /**
+     * 保存新增订单消息提醒
+     * @param $sn
+     */
+    public static function NewOrderMsg($sn){
+        $orders = DB::table('pro_mall_order')->where('sn', $sn)->get();
+        $msg_arr = [];
+        foreach ($orders as $item){
+            if($item->is_turn==1){
+                $content ='您转卖的商品，有人付款喽，快去看看吧。（订单编号：'.$item->sn.'）';
+
+            }else{
+                $content ='您发布的商品，有人付款喽，快去看看吧。（订单编号：'.$item->sn.'）';
+            }
+            $msg_arr[]=['type'=>0,'uid'=>$item->g_uid,'pro_id'=>$item->id,'content'=>$content];
+
+        }
+        DB::table('pro_mall_message')->insert($msg_arr);
+        //消息推送
+    }
+
+    /**
+     * 关闭订单消息
+     * @param $close_type
+     * @param $buy_uid
+     * @param $order_id
+     * @param $sn
+     */
+    public static function CloseOrderMsg($close_type,$buy_uid,$order_id,$sn){
+        $msg_arr = [];
+        if($close_type == 1){ //卖家关闭订单
+            $msg_arr = [
+                'type'=>1,'uid'=>$buy_uid,'pro_id'=>$order_id,
+                'content'=>'你买到的商品，（订单号：'.$sn.'）卖家关闭了交易，进来看下吧。'
+            ];
+        }else{    //买家关闭订单
+            $orders = DB::table('pro_mall_order')->where('sn',$sn)->get();
+            foreach ($orders as $item){
+                if($item->is_turn==1){
+                    $content ='你代理的商品，（订单号：'.$item->sn.'）买家关闭了交易，进来看下吧。';
+
+                }else{
+                    $content ='你卖出的商品，（订单号：'.$item->sn.'）买家关闭了交易，进来看下吧。';
+                }
+                $msg_arr[] = ['type'=>1,'uid'=>$item->g_uid,'pro_id'=>$item->id, 'content'=>$content];
+            }
+        }
+        DB::table('pro_mall_message')->insert($msg_arr);
+        //消息推送
+    }
+
+
+    /**
+     * 确认收货
+     * @param $orders
+     */
+    public static function ConfirmOrderMsg($orders){
+        $msg_arr = [];
+        foreach ($orders as $item){
+            $msg_arr[] = [
+                'type'=>5,'uid'=>$item->g_uid,'pro_id'=>$item->id,
+                'content'=>'订单号：'.$item->sn.'，买家已确认收货。'
+            ];
+        }
+        //保存消息，确实收货
+        DB::table('pro_mall_message')->insert($msg_arr);
+        //推送消息
+    }
 
     /**
      * 随机生成汉字
@@ -357,5 +418,45 @@ class Common
     }
 
 
+    /**
+     * 获取最新消息数量
+     * @param $uid
+     * @return int
+     */
+    public static function NewMsgNum($uid){
+        try{
+            $like_num =
+                DB::table('view_like_list')
+                    ->where('issue_uid',$uid)
+                    ->where('status',0)
+                    ->count();
+            //最新评论数量
+            $comment_num =
+                DB::table('view_comment_list')
+                    ->where('issue_uid',$uid)
+                    ->where('status',0)
+                    ->count();
+            //最新回复数量
+            $reply_num =
+                DB::table('view_reply_list')
+                    ->where('c_uid',$uid)
+                    ->where('status',0)
+                    ->count();
+            //最新转发数量
+            $turn_num =
+                DB::table('view_turn_list')
+                    ->where('issue_uid',$uid)
+                    ->where('status',0)
+                    ->count();
+            //消息列表
+            $msg_num = DB::table('pro_mall_message')
+                ->where('uid', $uid)
+                ->where('status',0)
+                ->count();
+            return $like_num + $comment_num + $reply_num + $turn_num + $msg_num;
+        }catch (\Exception $e){
+            return 0;
+        }
+    }
 
 }

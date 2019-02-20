@@ -43,14 +43,22 @@ class OrderController extends Controller
             $order->g_amount = $request->input('g_amount',0); //商品总价/积分
             $order->fare = $request->input('fare',0); //运费
             $order->total = $request->input('total',0); //订单总金额
-            $init_goods = Goods::find($order->turn_id);
-            if(!empty($init_goods) && $init_goods->amount-$order->num<0){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = '商品库存不足';
-                return $this->toJson();
-            }
             //计算应得金额
             $goods = Goods::find($order->g_id);
+            if($order->is_turn == DefaultEnum::YES){
+                $init_goods = Goods::find($order->turn_id);
+                if(!empty($init_goods) && $init_goods->amount-$order->num<0){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '商品库存不足';
+                    return $this->toJson();
+                }
+            }else{
+                if(!empty($goods) && $goods->amount-$order->num<0){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '商品库存不足';
+                    return $this->toJson();
+                }
+            }
             if(!empty($goods)){
                 if($order->is_turn == DefaultEnum::YES){  //转卖商品
                     $front = Goods::find($goods->turn_id);
@@ -103,12 +111,29 @@ class OrderController extends Controller
                 return $this->toJson();
             }
             $goods = Goods::find($order->g_id);
-            if($goods->amount-$order->num<0){
-                $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = '商品库存不足';
-                return $this->toJson();
+            $init_goods = Goods::find($order->turn_id);
+            if($order->is_turn == DefaultEnum::YES){
+                if(!empty($init_goods) && $init_goods->amount-$order->num<0){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '商品库存不足';
+                    return $this->toJson();
+                }
+            }else{
+                if(!empty($goods) && $goods->amount-$order->num<0){
+                    $this->code = ErrorCode::PARAM_ERROR;
+                    $this->message = '商品库存不足';
+                    return $this->toJson();
+                }
             }
+
             $order_arr = ['address' => $address, 'purse' => $purse, 'pay_amount' => $pay_amount];
+            $order_arr['status'] = 1;
+            DB::table('pro_mall_order')->where('sn', $order->sn)->update($order_arr);
+            //保存消息提醒
+            Common::NewOrderMsg($order->sn);
+
+
+            /*
             ///  钱包支付
             if($pay_amount == 0 && $purse > 0){
                 $user = auth()->user();
@@ -132,6 +157,8 @@ class OrderController extends Controller
                     DB::table('pro_mall_goods')->where('id', $order->turn_id)->decrement('amount', $order->num);
                     //保存订单信息
                     DB::table('pro_mall_order')->where('sn', $order->sn)->update($order_arr);
+                    //保存消息提醒
+                    Common::NewOrderMsg($order->sn);
                     $this->message = '钱包支付成功！';
                 });
 
@@ -147,7 +174,7 @@ class OrderController extends Controller
                     //保存订单信息
                     DB::table('pro_mall_order')->where('sn',$order->sn)->update($order_arr);
                 });
-            }
+            }*/
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -308,6 +335,45 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * 收货/发货提醒
+     * @param Request $request
+     * @return string
+     */
+    public function Remind(Request $request){
+        try{
+            $id = $request->input('id',0);
+            $type = $request->input('type',0);
+            $order = Order::find($id);
+            if(empty($order)){
+                $this->code = ErrorCode::PARAM_ERROR;
+                $this->message = 'id错误';
+                return $this->toJson();
+            }
+            if($type == 0){  //收货提醒
+                DB::table('pro_mall_message')->insert([
+                    'type'=>2,'uid'=>$order->buy_uid,'pro_id'=>$id,
+                    'content'=>'您购买的商品（订单编号：'.$order->sn.'）卖家提醒你确认收货，去瞧一眼吧。'
+                ]);
+                //消息推送
+
+            }else{  //发货提醒
+                DB::table('pro_mall_message')->insert([
+                    'type'=>3,'uid'=>$order->g_uid,'pro_id'=>$id,
+                    'content'=>'您发布的商品（订单编号：'.$order->sn.'），买家提醒你发货，快去看看吧。'
+                ]);
+                //消息推送
+
+            }
+            return $this->toJson();
+        }catch (\Exception $e){
+            $this->code = ErrorCode::EXCEPTION;
+            $this->message = $e->getMessage();
+            return $this->toJson();
+        }
+
+    }
+
 
     /**
      * 订单发货
@@ -325,10 +391,19 @@ class OrderController extends Controller
                 $this->message = '订单id错误';
                 return $this->toJson();
             }
-            //修改订单状态为已发货
-            DB::table('pro_mall_order')
-                ->where('sn',$order->sn)
-                ->update(['express'=>$express,'firm'=>$firm,'hair_time'=>date("Y-m-d H:i:s"),'status'=>2]);
+            DB::transaction(function ()use($order,$express,$firm){
+                //修改订单状态为已发货
+                DB::table('pro_mall_order')
+                    ->where('sn',$order->sn)
+                    ->update(['express'=>$express,'firm'=>$firm,'hair_time'=>date("Y-m-d H:i:s"),'status'=>2]);
+                //保存消息提醒
+                DB::table('pro_mall_message')->insert([
+                    'type'=>4,'uid'=>$order->buy_uid,'pro_id'=>$order->id,
+                    'content'=>'您买到的商品，订单编号：'.$order->sn.'，卖家已发货。'
+                ]);
+                //消息推送
+            });
+
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -373,6 +448,8 @@ class OrderController extends Controller
                 }
                 //订单关闭后，商品数量加上订单数量
                 DB::table('pro_mall_goods')->where('id',$order->g_id)->increment('amount',$order->num);
+                //保存消息
+                Common::CloseOrderMsg($up_arr['close_type'],$order->buy_uid,$order->id,$order->sn);
             });
 
             return $this->toJson();
@@ -439,6 +516,8 @@ class OrderController extends Controller
                         DB::table('pro_mall_users')->where('uid',$order->g_uid)->increment('integral', $order->g_amount);
                     }
                 }
+                //消息保存
+                Common::ConfirmOrderMsg($order_list);
             });
             return $this->toJson();
         }catch (\Exception $e){

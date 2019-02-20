@@ -12,17 +12,14 @@ use App\Lib\Common;
 use App\Lib\DataComm;
 use App\Lib\DefaultEnum;
 use App\Lib\FundsEnum;
-use App\Lib\ReleaseEnum;
 use App\Lib\ReturnData;
 use App\Lib\ErrorCode;
 use App\Lib\TaskStatus;
 use App\Models\Reward;
 use App\Models\Task;
 use App\Models\TaskChat;
-use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Yansongda\LaravelPay\Facades\Pay;
 
 class RewardController extends Controller
 {
@@ -63,19 +60,7 @@ class RewardController extends Controller
             $reward->is_plaza = $is_plaza;
             $reward->hope_time = $hope_time;
             //保存任务
-            DB::transaction(function ()use($reward,$id){
-                $reward->save();
-                //发布新任务时，保存资金流水记录
-                if(empty($id)){
-                    Common::SaveFunds($reward->uid,
-                        FundsEnum::RELEASE,
-                        $reward->total,
-                        $reward->id,
-                        '发布任务：'.$reward->title,
-                        1,
-                        $reward->id);
-                }
-            });
+            $reward->save();
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -84,6 +69,11 @@ class RewardController extends Controller
         }
     }
 
+    /**
+     * 支付赏金
+     * @param Request $request
+     * @return string
+     */
     public function RewardPay(Request $request){
         try{
             $id = $request->input('id','');
@@ -101,6 +91,9 @@ class RewardController extends Controller
             $reward->purse = $purse;
             $reward->total = $total;
             $reward->pay_amount = $pay_amount;
+            $reward->pay_status = 1;
+            $reward->save();
+            /*
             ///钱包支付
             if($pay_amount == 0 && $purse > 0){
                 $user = auth()->user();
@@ -133,7 +126,7 @@ class RewardController extends Controller
                     //保存支付信息
                     DB::table('pro_mall_payrecord')->insert($pay_record);
                 });
-            }
+            }*/
             return $this->toJson();
         }catch (\Exception $e){
             $this->code = ErrorCode::EXCEPTION;
@@ -303,9 +296,10 @@ class RewardController extends Controller
                 ->count();
             if($count>0){
                 $this->code = ErrorCode::PARAM_ERROR;
-                $this->message = '该任务还未完成，不能删除！';
+                $this->message = '该任务还有未完成订单，不能删除！';
                 return $this->toJson();
-            }DB::transaction(function ()use($id){
+            }
+            DB::transaction(function ()use($id){
                 $reward = Reward::find($id);
                 $reward->isdelete=1;
                 $reward->save();
@@ -315,7 +309,7 @@ class RewardController extends Controller
                 if($ret_money > 0){
                     DB::table('pro_mall_wallet')->where('uid',$reward->uid)->increment('amount', $ret_money);
                     //保存资金流水记录
-                    Common::SaveFunds($reward->uid, FundsEnum::RELEASE, $ret_money, '', '退回赏金：'.$reward->title, 0,$id);
+                    Common::SaveFunds($reward->uid, FundsEnum::RELEASE, $ret_money, '', '退回任务赏金', 0,$id);
                 }
             });
             return $this->toJson();
@@ -449,6 +443,12 @@ class RewardController extends Controller
                         }
                         $reward->status = 1;
                         $reward->save();
+                        //保存消息提醒
+                        DB::table('pro_mall_message')->insert([
+                            'type'=>6,'uid'=>$task->uid,'pro_id'=>$task->r_id,
+                            'content'=>'您的任务申请（任务编号：'.$reward->sn.'）以备雇主采纳。'
+                        ]);
+                        //推送消息
                         break;
                     case TaskStatus::COMPLY:   //提交
                         $task = Task::find($id);
@@ -460,6 +460,13 @@ class RewardController extends Controller
                         $task->status = TaskStatus::COMPLY;
                         $task->submit_time = date("Y-m-d H:i:s");
                         $task->save();
+                        //保存消息提醒
+                        $reward = Reward::find($task->r_id);
+                        DB::table('pro_mall_message')->insert([
+                            'type'=>7,'uid'=>$reward->uid,'pro_id'=>$reward->id,
+                            'content'=>'您发布的任务（任务编号：'.$reward->sn.'），有人提交了完成申请，快来确认吧。'
+                        ]);
+                        //消息推送
                         break;
                     case TaskStatus::COMPLETED:  //完成
                         $task = Task::find($id);
@@ -478,12 +485,18 @@ class RewardController extends Controller
                         //回写，任务已付赏金数量
                         DB::table('pro_mall_reward')->where('id',$task->r_id)->increment('surplus', $task->price);
                         //所有订单完成时，悬赏任务改为完成状态
+                        $reward = Reward::find($task->r_id);
                         if(Common::Is_Completed($task->r_id)){
-                            $reward = Reward::find($task->r_id);
                             $reward->status = 2;
                             $reward->end_time = date("Y-m-d H:i:s");
                             $reward->save();
                         }
+                        //消息保存
+                        DB::table('pro_mall_message')->insert([
+                            'type'=>8,'uid'=>$task->uid,'pro_id'=>$task->r_id,
+                            'content'=>'您的任务完成申请（任务编号：'.$reward->sn.'）已被雇主确认。'
+                        ]);
+                        //消息推送
                         break;
                     default:
                         break;

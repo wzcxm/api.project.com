@@ -12,6 +12,7 @@ use App\Lib\Common;
 use App\Lib\FundsEnum;
 use App\Models\Order;
 use App\Models\PayRecord;
+use App\Models\Reward;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Yansongda\LaravelPay\Facades\Pay;
@@ -37,6 +38,10 @@ class PayController extends Controller
                     if(!empty($pay_record)){
                         if($pay_record->pro_type==1){ //购买商品
                             self::UpdateOrder($pay_record->pro_id);
+                        }else if($pay_record->pro_type==2){ //发布任务
+                            self::UpdateReward($pay_record->pro_id);
+                        }else{
+
                         }
                         //更新支付信息状态为付款成功
                         DB::table('pro_mall_payrecord')->where('pay_no',$pay_sn)->update(['status'=>1]);
@@ -68,6 +73,10 @@ class PayController extends Controller
                     if(!empty($pay_record)){
                         if($pay_record->pro_type==1){ //购买商品
                             self::UpdateOrder($pay_record->pro_id);
+                        }else if($pay_record->pro_type==2){ //发布任务
+                            self::UpdateReward($pay_record->pro_id);
+                        }else{
+
                         }
                         //更新支付信息状态为付款成功
                         DB::table('pro_mall_payrecord')->where('pay_no',$pay_sn)->update(['status'=>1]);
@@ -89,23 +98,47 @@ class PayController extends Controller
      */
     private  function UpdateOrder($order_id){
         try{
-            DB::transaction(function ()use($order_id){
-                //更新订单为已付款
-                $order = Order::find($order_id);
-                if(!empty($order)){
-                    DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>1]);
-                    //更新商品库存
-                    DB::table('pro_mall_goods')->where('id',$order->turn_id)->decrement('amount',$order->num);
-                    //如果使用钱包付款，扣除钱包金额
-                    if($order->purse>0){
-                        DB::table('pro_mall_wallet')->where('uid',$order->buy_uid)->decrement('amount',$order->purse);
-                    }
-                    //保存资金流水记录
-                    Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->pay_amount+$order->purse, $order->sn, '购买商品', 1,$order->id);
+            //更新订单为已付款
+            $order = Order::find($order_id);
+            if(!empty($order)){
+                DB::table('pro_mall_order')->where('sn',$order->sn)->update(['status'=>1]);
+                //更新商品库存
+                DB::table('pro_mall_goods')->where('id',$order->turn_id)->decrement('amount',$order->num);
+                //如果使用钱包付款，扣除钱包金额
+                if($order->purse>0){
+                    DB::table('pro_mall_wallet')->where('uid',$order->buy_uid)->decrement('amount',$order->purse);
                 }
-            });
+                //保存消息提醒
+                Common::NewOrderMsg($order->sn);
+                //保存资金流水记录
+                Common::SaveFunds($order->buy_uid, FundsEnum::BUY, $order->pay_amount+$order->purse, $order->sn, '购买商品', 1,$order->id);
+            }
         }catch (\Exception $e){
             Log::error('Up_Order:'.$e->getMessage());
+        }
+    }
+
+
+    /**
+     * 支付成功后，更新任务状态
+     * @param $reward_id
+     */
+    private function UpdateReward($reward_id){
+        try{
+            //更新订单为已付款
+            $reward = Reward::find($reward_id);
+            if(!empty($reward)){
+                $reward->pay_status = 1;
+                $reward->save();
+                //如果使用钱包付款，扣除钱包金额
+                if($reward->purse>0){
+                    DB::table('pro_mall_wallet')->where('uid',$reward->uid)->decrement('amount',$reward->purse);
+                }
+                //保存资金流水记录
+                Common::SaveFunds($reward->uid, FundsEnum::RELEASE, $reward->pay_amount+$reward->purse, $reward->sn, '发布任务', 1,$reward->id);
+            }
+        }catch (\Exception $e){
+            Log::error('Up_Reward:'.$e->getMessage());
         }
     }
 }
